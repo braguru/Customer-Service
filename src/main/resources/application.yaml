@@ -24,3 +24,7 @@ spring:
     user: ${DATABASE_USERNAME}
     password: ${DATABASE_PASSWORD}
     url: ${DATABASE_URL}
+
+server:
+  port: 9090
+
