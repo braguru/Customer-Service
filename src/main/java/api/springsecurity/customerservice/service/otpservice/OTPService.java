@@ -11,10 +11,12 @@ import com.google.gson.JsonParser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 import static api.springsecurity.customerservice.exceptions.CustomExceptions.*;
 
@@ -40,7 +42,8 @@ public class OTPService {
      * @return A {@link String} containing a message indicating whether the OTP was sent successfully.
      * @throws OtpNotSentException if there is an error while sending the OTP.
      */
-    public String sendOtp(User user) {
+    @Async
+    public CompletableFuture<String> sendOtp(User user) {
         Map<String, String> requestBody = buildRequestBody(user);
         RequestBody jsonRequestBody = buildJsonRequestBody(requestBody);
 
@@ -52,7 +55,7 @@ public class OTPService {
                 .build();
 
         try {
-            return executeRequestWithRetry(request);
+            return CompletableFuture.completedFuture(executeRequestWithRetry(request));
         } catch (IOException e) {
             log.error("Failed to send OTP due to an exception: {}", e.getMessage());
             throw new OtpNotSentException("Failed to send OTP due to an exception: " + e.getMessage());

@@ -24,8 +24,8 @@ public class AuthController {
     private final OTPService otpService;
 
     @PostMapping("/signup")
-    public ResponseEntity<RegisterResponse> signup(@Valid @RequestBody RegisterRequest request) {
-        RegisterResponse response = authService.registerUser(request);
+    public ResponseEntity<CompletableFuture<RegisterResponse>> signup(@Valid @RequestBody RegisterRequest request) {
+        CompletableFuture<RegisterResponse> response = authService.registerUser(request);
         return ResponseEntity.ok(response);
     }
 
@@ -45,8 +45,8 @@ public class AuthController {
 
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
-        LoginResponse response = authService.loginUser(loginRequest);
+    public ResponseEntity<CompletableFuture<LoginResponse>> login(@RequestBody LoginRequest loginRequest) {
+        CompletableFuture<LoginResponse> response = authService.loginUser(loginRequest);
         return ResponseEntity.ok(response);
     }
 
