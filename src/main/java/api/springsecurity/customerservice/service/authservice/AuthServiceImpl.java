@@ -199,7 +199,6 @@ public class AuthServiceImpl implements AuthService {
                 .profilePicture(null)
                 .build());
 
-
         try {
             String response = otpService.sendOtp(user);
             // On success, return the registration response
@@ -361,7 +360,7 @@ public class AuthServiceImpl implements AuthService {
                     .build();
         } catch (OtpNotSentException ex) {
             log.error("Error sending OTP: {}", ex.getMessage());
-            throw new RuntimeException("Failed to send OTP. Please try again later.");
+            throw new OtpNotSentException("Failed to send OTP. Please try again later.");
         }
     }
 
