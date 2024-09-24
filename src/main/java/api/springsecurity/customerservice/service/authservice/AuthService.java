@@ -7,6 +7,8 @@ import api.springsecurity.customerservice.payload.OTPRequest;
 import api.springsecurity.customerservice.payload.RegisterRequest;
 import org.springframework.security.core.AuthenticationException;
 
+import java.util.concurrent.CompletableFuture;
+
 public interface AuthService {
 
     /**
@@ -19,7 +21,7 @@ public interface AuthService {
      * @param registerRequest the request containing the user's registration details such as username, email, phone, and password
      * @return a {@link RegisterResponse} containing the result of the registration process, including success/failure message and status code
      */
-    RegisterResponse registerUser(RegisterRequest registerRequest);
+    CompletableFuture<RegisterResponse> registerUser(RegisterRequest registerRequest);
 
     /**
      * Confirms a user's email by validating the provided token.
@@ -41,7 +43,7 @@ public interface AuthService {
      * @param loginRequest the request containing the user's login credentials, such as username/email and password
      * @return a {@link String} response, which may include a token or session information for the authenticated user
      */
-    LoginResponse loginUser(LoginRequest loginRequest);
+    CompletableFuture<LoginResponse> loginUser(LoginRequest loginRequest);
 
     /**
      * Authenticates a user using a phone number and a one-time password (OTP).
