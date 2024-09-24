@@ -47,26 +47,36 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
 
     /**
-     * Registers a new user based on the provided {@link RegisterRequest} details.
+     * Registers a new user based on the provided {@link RegisterRequest} details asynchronously.
      * <p>
-     * This method executes the following steps:
+     * This method handles user registration by validating the provided email, phone, username, and other details. The process involves:
      * <ul>
-     *   <li>Checks for an existing user with the specified email, phone number, or username.
-     *       If a conflict is found, it throws an appropriate exception.</li>
-     *   <li>If no conflict is detected, the new user is created and saved in the database.</li>
-     *   <li>Sends a verification email or OTP based on the provided registration details.</li>
-     *   <li>If an error occurs during the email or OTP sending process, the method catches the exception
-     *       and returns a partial success response, indicating that registration was successful
-     *       but the email/OTP could not be sent.</li>
+     *   <li>Checking if a user with the provided email, phone number, or username already exists. If any conflict is found, it throws the relevant exception:
+     *       <ul>
+     *           <li>{@link UserAlreadyExistsException} if a user with the given email, username, or phone number is found.</li>
+     *           <li>{@link EmailAlreadyExistException} if the email is already in use.</li>
+     *           <li>{@link PhoneNumberAlreadyExistsException} if the phone number is already in use.</li>
+     *       </ul>
+     *   </li>
+     *   <li>If no conflict is detected, the user is created and saved in the database.</li>
+     *   <li>If the request includes an email, the method handles registration by sending a verification email synchronously.
+     *       If it includes a phone number, it sends an OTP asynchronously using {@code otpService}.</li>
+     *   <li>If an error occurs while sending the email or OTP, the method catches the exception and returns a partial success response.
+     *       This indicates that the user was registered but the email/OTP could not be sent.</li>
      * </ul>
+     * </p>
+     * <p>
+     * This method returns a {@link CompletableFuture<RegisterResponse>} which represents the outcome of the registration process.
+     * It handles email-based registration synchronously and phone-based registration asynchronously.
+     * </p>
      *
-     * @param registerRequest the request object containing user registration details, including email,
-     *                        phone number, username, password, and role.
+     * @param registerRequest the request object containing the user's registration details, such as email, phone, username, password, and role.
      * @return a {@link CompletableFuture<RegisterResponse>} representing the outcome of the registration process.
+     *         If registration is successful, the response includes user details and a message regarding the OTP or email verification.
      * @throws UserAlreadyExistsException        if a user with the provided email, username, or phone number already exists.
-     * @throws EmailAlreadyExistException        if the provided email already exists in the system.
-     * @throws PhoneNumberAlreadyExistsException if the provided phone number already exists in the system.
-     * @throws NoEmailORPhoneNumberException     if neither an email nor a phone number is provided in the request.
+     * @throws EmailAlreadyExistException        if the provided email is already in use.
+     * @throws PhoneNumberAlreadyExistsException if the provided phone number is already in use.
+     * @throws NoEmailORPhoneNumberException     if neither an email nor a phone number is provided in the registration request.
      */
     @Override
     public CompletableFuture<RegisterResponse> registerUser(RegisterRequest registerRequest) {
@@ -162,22 +172,28 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
-     * Handles the user registration process using an email address.
+     * Handles the user registration process using a phone number and sends an OTP asynchronously.
      * <p>
-     * This method performs the following actions:
+     * This method registers a user by phone number and performs the following actions:
      * <ul>
-     *   <li>Validates that a password is provided and meets the required criteria.</li>
-     *   <li>Ensures no phone number is included in the request.</li>
-     *   <li>Creates and saves the user in the database.</li>
-     *   <li>Attempts to send a verification email to the provided address.
-     *       If email sending fails, a partial success response is returned.</li>
+     *   <li>Validates that no password is provided (since this is a phone-based registration).</li>
+     *   <li>Ensures no email is included in the request.</li>
+     *   <li>Creates and saves the user in the database with the provided phone number.</li>
+     *   <li>Sends an OTP to the user's phone number asynchronously using the {@code otpService}.</li>
      * </ul>
+     * </p>
+     * <p>
+     * Upon successful OTP sending, a {@link RegisterResponse} is returned asynchronously,
+     * containing details of the user and a message indicating that the OTP was sent successfully.
+     * If there is an error sending the OTP, the method throws an {@link OtpNotSentException}.
+     * </p>
      *
      * @param registerRequest the {@link RegisterRequest} containing the user's registration details
-     * @return a {@link RegisterResponse} indicating the result of the registration process,
-     *         including a message if the email was not sent successfully.
-     * @throws PasswordValidationException if the password format is invalid
-     * @throws NoEmailORPhoneNumberException if a required field is missing or improperly provided
+     *                        including username, phone number, and role (but no email or password).
+     * @return a {@link CompletableFuture<RegisterResponse>} indicating the result of the registration process.
+     *         On success: contains the user details and a message that the OTP was sent successfully.
+     * @throws NoEmailORPhoneNumberException if a password is provided for phone-based registration.
+     * @throws OtpNotSentException if the OTP could not be sent after successful registration.
      */
     public CompletableFuture<RegisterResponse> handlePhoneBasedRegistration(RegisterRequest registerRequest) {
         if (registerRequest.password() != null && !registerRequest.password().isEmpty()) {
@@ -293,16 +309,26 @@ public class AuthServiceImpl implements AuthService {
 
 
     /**
-     * Logs in a user with email and password or phone and OTP.
+     * Handles user login via email/password or phone/OTP and returns a result asynchronously.
+     * <p>
+     * This method processes login requests by validating the provided credentials. It supports two login flows:
+     * <ul>
+     *   <li><strong>Email and password:</strong> If both email and password are provided, the method performs authentication using the email and password.</li>
+     *   <li><strong>Phone and OTP:</strong> If only a phone number is provided, an OTP is sent to the user's phone number asynchronously.</li>
+     * </ul>
+     * </p>
+     * <p>
+     * If the authentication is successful, a {@link CompletableFuture<LoginResponse>} is returned,
+     * containing the status and a message indicating the result of the login attempt. If neither
+     * email nor phone number is provided, or the request is invalid, an appropriate exception is thrown.
+     * </p>
      *
-     * <p>This method handles login requests by validating the provided credentials. It supports two login methods:
-     * via email and password, or via phone and OTP. If the phone is provided, it sends an OTP to the user's phone.
-     * If authentication is successful, it returns a {@link LoginResponse} with a message indicating the result.</p>
-     *
-     * @param loginRequest the {@link LoginRequest} containing the user's login information (email/password or phone)
-     * @return a {@link CompletableFuture<LoginResponse>} indicating the result of the login attempt, including status and messages
-     * @throws NoEmailORPhoneNumberException if neither email nor phone number is provided
-     * @throws AuthenticationException       if the login request is invalid
+     * @param loginRequest the {@link LoginRequest} containing the user's login details, either email/password or phone/OTP
+     * @return a {@link CompletableFuture<LoginResponse>} containing the result of the login attempt:
+     *         - For email/password: The result is returned synchronously.
+     *         - For phone/OTP: The result is handled asynchronously.
+     * @throws NoEmailORPhoneNumberException if neither email nor phone number is provided.
+     * @throws AuthenticationException       if the login request is invalid or contains improper credentials.
      */
     @Override
     public CompletableFuture<LoginResponse> loginUser(LoginRequest loginRequest) {
@@ -323,27 +349,45 @@ public class AuthServiceImpl implements AuthService {
     }
 
 
+    /**
+     * Checks if a given string is null or empty.
+     *
+     * @param value the string to check
+     * @return {@code true} if the string is null or empty, {@code false} otherwise
+     */
     private boolean isEmpty(String value) {
         return value == null || value.isEmpty();
     }
 
+    /**
+     * Checks if a given string is not null and not empty.
+     *
+     * @param value the string to check
+     * @return {@code true} if the string is not null and not empty, {@code false} otherwise
+     */
     private boolean notEmpty(String value) {
         return !isEmpty(value);
     }
 
+
     /**
-     * Authenticates a user using their phone number and sends an OTP.
+     * Authenticates a user by their phone number and sends a One-Time Password (OTP) asynchronously.
      * <p>
-     * This method retrieves the user by their phone number and sends an OTP.
-     * If the user is not found, it throws a {@link UserNotFoundException}.
-     * Upon successfully sending the OTP, it returns a {@link LoginResponse}.
+     * This method retrieves the user associated with the given phone number from the database.
+     * If the user is found, an OTP is sent to their phone number asynchronously using the {@code otpService}.
+     * The method returns a {@link CompletableFuture<LoginResponse>} that represents the result of the OTP sending process.
+     * </p>
+     * <p>
+     * Upon successful OTP transmission, the {@link LoginResponse} contains a message indicating that the OTP
+     * was sent. If an error occurs (e.g., the user is not found, or the OTP cannot be sent), the method will
+     * throw a corresponding exception.
      * </p>
      *
      * @param phone the user's phone number
-     * @return a {@link LoginResponse} indicating the result of the OTP sending process:
-     *         - Success: message "OTP sent successfully. Check your phone for OTP."
-     * @throws UserNotFoundException if the user is not found
-     * @throws RuntimeException if there is an error sending the OTP
+     * @return a {@link CompletableFuture<LoginResponse>} indicating the result of the OTP sending process.
+     *         On success: contains the message "OTP sent successfully. Check your phone for OTP."
+     * @throws UserNotFoundException if the user is not found in the database.
+     * @throws OtpNotSentException if an error occurs while sending the OTP.
      */
     private CompletableFuture<LoginResponse> authenticateWithPhoneAndOtp(String phone) {
         User user = userRepository.findByPhone(phone)
