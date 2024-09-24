@@ -24,6 +24,7 @@ spring:
     user: ${DATABASE_USERNAME}
     password: ${DATABASE_PASSWORD}
     url: ${DATABASE_URL}
+
   mail:
     host: ${EMAIL_HOST}
     port: ${EMAIL_PORT}
@@ -41,6 +42,7 @@ logging:
     org:
       springframework:
         security=TRACE:
+
 
 server:
   port: 9090
