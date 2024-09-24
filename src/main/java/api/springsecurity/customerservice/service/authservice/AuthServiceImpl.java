@@ -162,22 +162,24 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
-     * Handles the user registration process using an email address.
+     * Handles the user registration process using a phone number.
      * <p>
      * This method performs the following actions:
      * <ul>
-     *   <li>Validates that a password is provided and meets the required criteria.</li>
-     *   <li>Ensures no phone number is included in the request.</li>
-     *   <li>Creates and saves the user in the database.</li>
-     *   <li>Attempts to send a verification email to the provided address.
-     *       If email sending fails, a partial success response is returned.</li>
+     *   <li>Validates that no password is provided, as phone-based registration should not include a password.</li>
+     *   <li>Creates and saves the user in the database with their phone number and other relevant details.</li>
+     *   <li>Sends an OTP to the user's phone number for verification.</li>
+     *   <li>If OTP sending fails, an {@link OtpNotSentException} is thrown to indicate the registration succeeded, but the OTP could not be sent.</li>
      * </ul>
+     * </p>
+     * <p>
+     * This method returns a {@link RegisterResponse} indicating the result of the registration process, including a message if the OTP was sent successfully.
+     * </p>
      *
-     * @param registerRequest the {@link RegisterRequest} containing the user's registration details
-     * @return a {@link RegisterResponse} indicating the result of the registration process,
-     *         including a message if the email was not sent successfully.
-     * @throws PasswordValidationException if the password format is invalid
-     * @throws NoEmailORPhoneNumberException if a required field is missing or improperly provided
+     * @param registerRequest the {@link RegisterRequest} containing the user's registration details, such as username, phone number, and role.
+     * @return a {@link RegisterResponse} indicating the result of the registration process, including user details and an OTP-related message.
+     * @throws NoEmailORPhoneNumberException if a password is provided for phone-based registration.
+     * @throws OtpNotSentException if the OTP could not be sent after successful registration.
      */
     public RegisterResponse handlePhoneBasedRegistration(RegisterRequest registerRequest) {
         if (registerRequest.password() != null && !registerRequest.password().isEmpty()) {
