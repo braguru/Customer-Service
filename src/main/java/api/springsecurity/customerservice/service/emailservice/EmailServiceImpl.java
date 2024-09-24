@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
@@ -31,6 +32,7 @@ public class EmailServiceImpl implements EmailService {
      * @throws MessagingException if there is an error while creating or sending the email
      */
     @Override
+    @Async
     public void sendEmail(String toEmail, String subject, String body) throws MessagingException {
         try{
         MimeMessage message = mailSender.createMimeMessage();
@@ -61,6 +63,7 @@ public class EmailServiceImpl implements EmailService {
      * @throws MessagingException if there is an error while creating or sending the email
      */
     @Override
+    @Async
     public void sendVerificationEmail(String toEmail, String token) throws MessagingException {
         try {
             Context context = new Context();
