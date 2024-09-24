@@ -6,6 +6,7 @@ import api.springsecurity.customerservice.entity.User;
 import api.springsecurity.customerservice.entity.UserProfile;
 import api.springsecurity.customerservice.entity.VerificationToken;
 import api.springsecurity.customerservice.entity.enums.Role;
+import api.springsecurity.customerservice.exceptions.CustomExceptions;
 import api.springsecurity.customerservice.exceptions.CustomExceptions.UserAlreadyExistsException;
 import api.springsecurity.customerservice.payload.LoginRequest;
 import api.springsecurity.customerservice.payload.OTPRequest;
