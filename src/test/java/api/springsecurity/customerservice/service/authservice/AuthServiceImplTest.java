@@ -1,5 +1,6 @@
 package api.springsecurity.customerservice.service.authservice;
 
+import api.springsecurity.customerservice.dto.LoginResponse;
 import api.springsecurity.customerservice.dto.RegisterResponse;
 import api.springsecurity.customerservice.entity.User;
 import api.springsecurity.customerservice.entity.UserProfile;
@@ -7,12 +8,14 @@ import api.springsecurity.customerservice.entity.VerificationToken;
 import api.springsecurity.customerservice.entity.enums.Role;
 import api.springsecurity.customerservice.exceptions.CustomExceptions;
 import api.springsecurity.customerservice.exceptions.CustomExceptions.UserAlreadyExistsException;
+import api.springsecurity.customerservice.payload.LoginRequest;
 import api.springsecurity.customerservice.payload.RegisterRequest;
 import api.springsecurity.customerservice.repositories.UserProfileRepository;
 import api.springsecurity.customerservice.repositories.UserRepository;
 import api.springsecurity.customerservice.repositories.VerificationTokenRepository;
 import api.springsecurity.customerservice.service.emailservice.EmailService;
 import api.springsecurity.customerservice.service.otpservice.OTPService;
+import api.springsecurity.customerservice.utils.jwtutil.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -20,9 +23,12 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -55,9 +61,27 @@ class AuthServiceImplTest {
     @Mock
     private VerificationTokenRepository verificationTokenRepository;
 
+    @Mock
+    AuthenticationManager authenticationManager;
+
+    @Mock
+    JwtUtil jwtUtil;
+
+    private User user;
+    private VerificationToken token;
+    private LoginRequest loginRequest;
+
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+
+        user = new User();
+        user.setEnabled(false);
+
+        token = new VerificationToken();
+        token.setConfirmationToken("sample-token");
+        token.setUser(user);
+        token.setExpiryDate(LocalDateTime.now().plusMinutes(10)); // valid token
     }
 
     private static class RegisterTestCase {
@@ -270,11 +294,113 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void confirmToken() {
+    void testConfirmTokenSuccess() {
+        // Mock the repository to return the token
+        when(verificationTokenRepository.findByConfirmationToken("sample-token"))
+                .thenReturn(Optional.of(token));
+
+        String result = authService.confirmToken("sample-token");
+
+        // Verify the token is confirmed
+        assertNotNull(token.getConfirmedAt());
+        assertTrue(user.isEnabled());
+        assertEquals("Account activated successfully", result);
+
+        verify(userRepository, times(1)).save(user);
+        verify(verificationTokenRepository, times(1)).findByConfirmationToken("sample-token");
     }
 
     @Test
-    void loginUser() {
+    void testTokenNotFound() {
+        // Mock the repository to return empty
+        when(verificationTokenRepository.findByConfirmationToken("invalid-token"))
+                .thenReturn(Optional.empty());
+
+        assertThrows(TokenNotFoundException.class, () -> {
+            authService.confirmToken("invalid-token");
+        });
+
+        verify(userRepository, never()).save(any());
+        verify(verificationTokenRepository, times(1)).findByConfirmationToken("invalid-token");
+    }
+
+    @Test
+    void testEmailAlreadyConfirmed() {
+        // Set the token as already confirmed
+        token.setConfirmedAt(LocalDateTime.now());
+
+        // Mock the repository to return the token
+        when(verificationTokenRepository.findByConfirmationToken("sample-token"))
+                .thenReturn(Optional.of(token));
+
+        assertThrows(EmailAlreadyConfirmedException.class, () -> {
+            authService.confirmToken("sample-token");
+        });
+
+        verify(userRepository, never()).save(any());
+        verify(verificationTokenRepository, times(1)).findByConfirmationToken("sample-token");
+    }
+
+    @Test
+    void testTokenExpired() {
+        // Set the token expiry to a past date
+        token.setExpiryDate(LocalDateTime.now().minusMinutes(1));
+
+        // Mock the repository to return the token
+        when(verificationTokenRepository.findByConfirmationToken("sample-token"))
+                .thenReturn(Optional.of(token));
+
+        assertThrows(TokenExpiredException.class, () -> {
+            authService.confirmToken("sample-token");
+        });
+
+        verify(userRepository, never()).save(any());
+        verify(verificationTokenRepository, times(1)).findByConfirmationToken("sample-token");
+    }
+
+    @Test
+    void testLoginUser_WithEmptyEmailAndPhone_ThrowsNoEmailORPhoneNumberException() {
+        // Set up login request with empty email and phone
+        loginRequest = new LoginRequest("", "", "password");
+
+        // Assert that NoEmailORPhoneNumberException is thrown
+        assertThrows(NoEmailORPhoneNumberException.class, () -> {
+            authService.loginUser(loginRequest);
+        });
+
+    }
+
+    @Test
+    void testLoginUser_WithEmailAndPassword_CallsAuthenticateWithEmailAndPassword() {
+        loginRequest = new LoginRequest("user@example.com", "", "password");
+        // Mock the Authentication object
+        Authentication authenticationMock = mock(Authentication.class);
+
+        // Mock the authenticationManager's authenticate method to return the authentication mock
+        when(authenticationManager.authenticate(any(Authentication.class))).thenReturn(authenticationMock);
+
+        // Mock the getPrincipal method to return the user
+        when(authenticationMock.getPrincipal()).thenReturn(user);
+
+        // Mock jwtService to return a dummy JWT token
+        String expectedToken = "mock-jwt-token";
+        when(jwtUtil.generateToken(user)).thenReturn(expectedToken);
+
+        // Mock the method that authenticates with email and password
+        LoginResponse expectedResponse = LoginResponse.builder().token(expectedToken).message("Login successful").build();
+
+        // Call loginUser and check result
+        LoginResponse result = authService.authenticateWithEmailAndPassword(loginRequest);
+
+        // Assert that the result is as expected
+        assertEquals(expectedResponse.getToken(), result.getToken());
+        assertEquals(expectedResponse.getMessage(), result.getMessage());
+
+        // Verify that jwtService.generateToken() was called
+        verify(jwtUtil, times(1)).generateToken(user);
+
+        // Verify that authenticationManager.authenticate() was called
+        verify(authenticationManager, times(1)).authenticate(any(Authentication.class));
     }
 
     @Test
