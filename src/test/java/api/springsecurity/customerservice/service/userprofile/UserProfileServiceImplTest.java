@@ -3,7 +3,6 @@ package api.springsecurity.customerservice.service.userprofile;
 import api.springsecurity.customerservice.dto.ProfileResponse;
 import api.springsecurity.customerservice.entity.User;
 import api.springsecurity.customerservice.entity.UserProfile;
-import api.springsecurity.customerservice.exceptions.CustomExceptions;
 import api.springsecurity.customerservice.payload.ProfileRequest;
 import api.springsecurity.customerservice.repositories.UserProfileRepository;
 import api.springsecurity.customerservice.repositories.UserRepository;
