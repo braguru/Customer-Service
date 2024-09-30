@@ -6,7 +6,6 @@ import api.springsecurity.customerservice.entity.User;
 import api.springsecurity.customerservice.entity.UserProfile;
 import api.springsecurity.customerservice.entity.VerificationToken;
 import api.springsecurity.customerservice.entity.enums.Role;
-import api.springsecurity.customerservice.exceptions.CustomExceptions;
 import api.springsecurity.customerservice.exceptions.CustomExceptions.UserAlreadyExistsException;
 import api.springsecurity.customerservice.payload.LoginRequest;
 import api.springsecurity.customerservice.payload.RegisterRequest;
@@ -16,10 +15,12 @@ import api.springsecurity.customerservice.repositories.VerificationTokenReposito
 import api.springsecurity.customerservice.service.emailservice.EmailService;
 import api.springsecurity.customerservice.service.otpservice.OTPService;
 import api.springsecurity.customerservice.utils.jwtutil.JwtUtil;
+import jakarta.mail.MessagingException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -77,11 +78,17 @@ class AuthServiceImplTest {
 
         user = new User();
         user.setEnabled(false);
+        user.setId(UUID.randomUUID());
+        user.setEmail("user@example.com");
+        user.setUsername("testuser");
+        user.setPhone("1234567890");
 
         token = new VerificationToken();
         token.setConfirmationToken("sample-token");
         token.setUser(user);
         token.setExpiryDate(LocalDateTime.now().plusMinutes(10)); // valid token
+
+
     }
 
     private static class RegisterTestCase {
@@ -194,7 +201,7 @@ class AuthServiceImplTest {
         // Mock password encoding
         when(passwordEncoder.encode(registerRequest.password())).thenReturn("encodedPassword");
 
-        User user = User.builder()
+        user = User.builder()
                 .username(registerRequest.username())
                 .email(registerRequest.email())
                 .date(LocalDate.now())
@@ -257,7 +264,7 @@ class AuthServiceImplTest {
         // Mock password encoding
         when(passwordEncoder.encode(registerRequest.password())).thenReturn("encodedPassword");
 
-        User user = User.builder()
+        user = User.builder()
                 .username(registerRequest.username())
                 .email(registerRequest.email())
                 .date(LocalDate.now())
@@ -290,7 +297,64 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void sendVerificationEmail() {
+    void testSendVerificationEmail_Success() throws Exception {
+        RegisterResponse response = authService.sendVerificationEmail(user);
+
+        verify(verificationTokenRepository, times(1)).save(any(VerificationToken.class));
+
+        ArgumentCaptor<String> tokenCaptor = ArgumentCaptor.forClass(String.class);
+        verify(emailService, times(1)).sendVerificationEmail(eq(user.getEmail()), tokenCaptor.capture());
+        String capturedToken = tokenCaptor.getValue();
+
+        assertNotNull(response);
+        assertEquals(user.getId().toString(), response.getId());
+        assertEquals(user.getUsername(), response.getUsername());
+        assertEquals(user.getEmail(), response.getEmail());
+        assertEquals("Registration successful. A verification email has been sent.", response.getMessage());
+        assertNotNull(capturedToken);
+    }
+
+    @Test
+    void testSendVerificationEmail_EmailNotSentException() throws Exception {
+        doThrow(new EmailNotSentException("Email failed to send")).when(emailService).sendVerificationEmail(anyString(), anyString());
+
+        EmailNotSentException exception = assertThrows(EmailNotSentException.class, () -> authService.sendVerificationEmail(user));
+
+        verify(verificationTokenRepository, times(1)).save(any(VerificationToken.class));
+
+        verify(emailService, times(1)).sendVerificationEmail(eq(user.getEmail()), anyString());
+
+        assertEquals("Failed to send verification email. Please try again.", exception.getMessage());
+    }
+
+    @Test
+    void testSendVerificationEmail_MessagingException() throws Exception {
+        doThrow(new MessagingException("Messaging exception")).when(emailService).sendVerificationEmail(anyString(), anyString());
+
+        assertThrows(EmailNotSentException.class, () -> authService.sendVerificationEmail(user));
+
+        verify(verificationTokenRepository, times(1)).save(any(VerificationToken.class));
+
+        verify(emailService, times(1)).sendVerificationEmail(eq(user.getEmail()), anyString());
+    }
+
+    @Test
+    void testVerificationTokenSavedWithCorrectValues() throws Exception {
+        // Call the method
+        authService.sendVerificationEmail(user);
+
+        // Capture the saved VerificationToken
+        ArgumentCaptor<VerificationToken> tokenCaptor = ArgumentCaptor.forClass(VerificationToken.class);
+        verify(verificationTokenRepository, times(1)).save(tokenCaptor.capture());
+        VerificationToken savedToken = tokenCaptor.getValue();
+
+        // Assert that the token contains the correct user and token
+        assertNotNull(savedToken);
+        assertEquals(user, savedToken.getUser());
+        assertNotNull(savedToken.getConfirmationToken());  // This ensures a token is generated
+        assertNotNull(savedToken.getCreatedDate());
+        assertNotNull(savedToken.getExpiryDate());
+        assertTrue(savedToken.getExpiryDate().isAfter(LocalDateTime.now()));
     }
 
     @Test
