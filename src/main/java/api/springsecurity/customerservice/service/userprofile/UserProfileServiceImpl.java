@@ -37,7 +37,6 @@ public class UserProfileServiceImpl implements UserProfileService {
     @Override
     public ProfileResponse getProfile() {
         UUID userId = userUtil.getCurrentUserId();
-        log.info("Getting user profile for user: {}", userId);
         Optional<UserProfile> profile = userProfileRepository.findByUser_Id(userId);
         if(profile.isPresent()) {
             log.info("User profile found for user: {}", userId);
