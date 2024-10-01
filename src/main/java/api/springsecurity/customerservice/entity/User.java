@@ -38,6 +38,7 @@ public class User implements UserDetails {
     private LocalDate date;
     @Enumerated(EnumType.STRING)
     private Role role;
+    @Builder.Default
     private boolean enabled = false;
     private boolean locked = false;
 

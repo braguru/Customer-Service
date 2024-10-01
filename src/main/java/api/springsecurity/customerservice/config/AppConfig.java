@@ -2,26 +2,30 @@ package api.springsecurity.customerservice.config;
 
 import api.springsecurity.customerservice.entity.User;
 import api.springsecurity.customerservice.repositories.UserRepository;
+import api.springsecurity.customerservice.utils.userutil.OTPAuthenticationProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Configuration
 @RequiredArgsConstructor
 public class AppConfig {
 
     private final UserRepository userRepository;
+    private final OTPAuthenticationProvider otpAuthenticationProvider;
 
     /**
      * Configures a custom {@link UserDetailsService} that retrieves user details for authentication
@@ -42,7 +46,8 @@ public class AppConfig {
         return identifier -> {
             Optional<User> userOpt = userRepository.findByUsernameAndLockedIsFalse(identifier)
                     .or(() -> userRepository.findByEmailAndLockedIsFalse(identifier))
-                    .or(() -> userRepository.findByPhoneAndLockedIsFalse(identifier));
+                    .or(() -> userRepository.findByPhoneAndLockedIsFalse(identifier))
+                    .or(() -> userRepository.findById(UUID.fromString(identifier)));
 
             return userOpt.orElseThrow(() -> new UsernameNotFoundException("User not found: " + identifier));
         };
@@ -92,15 +97,16 @@ public class AppConfig {
 
 
     /**
-     * Provides an {@link AuthenticationManager} bean for handling authentication processes.
-     * This bean is used by Spring Security to authenticate users.
+     * Provides an {@link AuthenticationManager} bean configured with multiple {@link AuthenticationProvider}s.
      *
-     * @param configuration the {@link AuthenticationConfiguration} used to obtain the {@link AuthenticationManager}
-     * @return the {@link AuthenticationManager} bean
-     * @throws Exception if an error occurs while obtaining the {@link AuthenticationManager}
+     * <p>This bean is used by Spring Security to handle authentication processes by delegating to the configured
+     * authentication providers, including a custom OTP authentication provider.</p>
+     *
+     * @return the configured {@link AuthenticationManager} bean
      */
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
-        return configuration.getAuthenticationManager();
+    public AuthenticationManager authenticationManager() {
+        List<AuthenticationProvider> providers = List.of(authenticationProvider(), otpAuthenticationProvider);
+        return new ProviderManager(providers);
     }
 }
