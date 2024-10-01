@@ -73,13 +73,15 @@ public class AuthServiceImpl implements AuthService {
         log.info("Registering user with email: {}, phone: {}, username: {}",
                 registerRequest.email(), registerRequest.phone(), registerRequest.username());
 
-        if (userRepository.findByUsernameOrEmailOrPhone(registerRequest.username(), registerRequest.email(), registerRequest.phone()).isPresent()) {
+        if (userRepository.findByUsername(registerRequest.username()).isPresent()) {
+            log.error("User with provided email, username, or phone already exists.");
             throw new UserAlreadyExistsException("User with provided email, username, or phone already exists.");
         }
 
         // Handle email-based registration
         if (registerRequest.email() != null && !registerRequest.email().isEmpty()) {
             if (userRepository.findByEmail(registerRequest.email()).isPresent()) {
+                log.error("Email already exists");
                 throw new EmailAlreadyExistException("Email already exists");
             }
             return handleEmailBasedRegistration(registerRequest);
@@ -87,12 +89,14 @@ public class AuthServiceImpl implements AuthService {
 
         if (registerRequest.phone() != null && !registerRequest.phone().isEmpty()) {
             if (userRepository.findByPhone(registerRequest.phone()).isPresent()) {
+                log.error("Phone number already exists.");
                 throw new PhoneNumberAlreadyExistsException("Phone number already exists.");
             }
 
             return handlePhoneBasedRegistration(registerRequest);
         }
 
+        log.error("Email or phone number not provided.");
         throw new NoEmailORPhoneNumberException("Email or phone number must be provided.");
     }
 
@@ -188,22 +192,18 @@ public class AuthServiceImpl implements AuthService {
 
         User user = User.builder()
                 .username(registerRequest.username())
-                .email(null) // No email
                 .date(LocalDate.now())
                 .role(Role.valueOf(registerRequest.role()))
                 .phone(registerRequest.phone())
-                .enabled(false)
-                .password(null) // No password
                 .build();
         userRepository.save(user);
         userProfileRepository.save(UserProfile.builder()
                 .user(user)
-                .profilePicture(null)
                 .build());
 
         try {
             String response = otpService.sendOtp(user);
-            // On success, return the registration response
+            log.info(response);
             return RegisterResponse.builder()
                     .id(String.valueOf(user.getId()))
                     .username(user.getUsername())
@@ -212,7 +212,6 @@ public class AuthServiceImpl implements AuthService {
                     .message(response)
                     .build();
         }catch (OtpNotSentException ex) {
-            // On failure, handle the exception and provide a fallback response
             log.error("Failed to send OTP for user {}. Reason: {}", user.getPhone(), ex.getMessage());
             throw new OtpNotSentException("Registration successful but OTP not sent. Please try again.");
         }
@@ -336,6 +335,7 @@ public class AuthServiceImpl implements AuthService {
         return !isEmpty(value);
     }
 
+
     /**
      * Authenticates a user using their phone number and sends an OTP.
      * <p>
@@ -361,51 +361,31 @@ public class AuthServiceImpl implements AuthService {
                     .message("OTP sent successfully. Check your phone for OTP.")
                     .build();
         } catch (OtpNotSentException ex) {
-            log.error("Error sending OTP: {}", ex.getMessage());
+            log.error("Failed sending OTP: {}", ex.getMessage());
             throw new OtpNotSentException("Failed to send OTP. Please try again later.");
         }
     }
 
 
-
-
     /**
-     * Authenticates a user using a phone number and OTP.
+     * Authenticates a user using their phone number and OTP (One-Time Password).
      *
-     * <p>This method verifies the OTP provided for the user's phone number. If the OTP is valid,
-     * it generates a JWT token for the user and returns a {@link LoginResponse} with the token and a success message.
-     * If the OTP is invalid, it throws an {@link InvalidOTPException}.</p>
+     * <p>This method verifies the provided OTP for the user's phone number. If the OTP is valid,
+     * it generates a JWT token for the user and returns a {@link LoginResponse} containing the token
+     * and a success message. If the OTP is invalid, an {@link InvalidOTPException} is thrown.</p>
      *
      * @param otpRequest the {@link OTPRequest} containing the phone number and OTP
-     * @return a {@link LoginResponse} indicating the result of the OTP authentication, including status and JWT token if successful
+     * @return a {@link LoginResponse} indicating the result of the OTP authentication,
+     *         including the status and JWT token if authentication is successful
+     * @throws InvalidOTPException if the OTP validation fails
      */
-//    public LoginResponse authenticateWithPhoneAndOtp(OTPRequest otpRequest) {
-//        User user = userRepository.findByPhone(otpRequest.number())
-//                .orElseThrow(() -> new UserNotFoundException("User not found. Please sign up"));
-//
-//        RegisterResponse otpResponse = otpService.verifyOTP(otpRequest);
-//        // Validate OTP (this is just a placeholder, adjust logic to your actual OTP validation)
-//        if (!otpService.verifyOTP(otpRequest).getMessage().equals("OK")) {
-//            log.error("OTP validation failed for user with phone number: {}. Reason: {}", otpRequest.number(), otpResponse.getMessage());
-//            throw new InvalidOTPException("Invalid OTP. Please try again.");
-//        }
-//        Authentication authenticate = authenticationManager.authenticate(
-//                new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword()));
-//        String jwtToken = jwtService.generateToken(user);
-//        return LoginResponse.builder()
-//                .token(jwtToken)
-//                .message("Login successful")
-//                .build();
-//    }
     public LoginResponse authenticateWithPhoneAndOtp(OTPRequest otpRequest) {
         try {
             Authentication authenticate = authenticationManager.authenticate(
                     new OTPAuthenticationToken(otpRequest.number(), otpRequest.code()));
 
-            // Cast the authenticated principal to your custom User class
-            User user = (User) authenticate.getPrincipal();
+            User user = (User) authenticate.getDetails();
 
-            // Generate JWT token
             String jwtToken = jwtService.generateToken(user);
             log.info("User with phone number: {} logged in successfully", otpRequest.number());
             return LoginResponse.builder()
@@ -417,6 +397,7 @@ public class AuthServiceImpl implements AuthService {
             throw new InvalidOTPException("Invalid OTP. Please try again. ");
         }
     }
+
 
     /**
      * Authenticates a user using their email and password.
@@ -449,7 +430,6 @@ public class AuthServiceImpl implements AuthService {
         } catch (DisabledException | LockedException e) {
             log.error("User with email: {} is disabled or locked", loginRequest.email());
             throw new DisabledException("Account not activated");
-//            throw new UnActivatedAccountException("Account not activated");
         } catch (BadCredentialsException e) {
             log.error("Invalid credentials for user with email: {}", loginRequest.email());
             throw new BadCredentialsException("Invalid credentials. Please check your email and password.");
@@ -457,4 +437,48 @@ public class AuthServiceImpl implements AuthService {
     }
 
 
+    /**
+     * Resends an OTP (One-Time Password) to the user identified by the provided phone number.
+     *
+     * <p>This method retrieves the user associated with the given phone number from the {@link UserRepository}.
+     * If the user is found, an OTP is sent to the user's phone number using the {@link OTPService}.
+     * If the user is not found, a {@link UserNotFoundException} is thrown.
+     * If there is an error while sending the OTP, an {@link OtpNotSentException} is thrown and logged.</p>
+     *
+     * @param otpRequest the {@link OTPRequest} containing the phone number to which the OTP will be sent
+     * @return a success message indicating that the OTP was sent successfully
+     * @throws UserNotFoundException if no user is found with the provided phone number
+     * @throws OtpNotSentException if there is an error while sending the OTP
+     */
+    public String resendOTP(OTPRequest otpRequest){
+        try {
+            User user = userRepository.findByPhone(otpRequest.number()).orElseThrow(
+                    () -> new UserNotFoundException("User not found with phone number: " + otpRequest.number())
+            );
+            String response = otpService.sendOtp(user);
+            log.info(response);
+        } catch (OtpNotSentException ex) {
+            log.error("Error sending OTP: {}", ex.getMessage());
+            throw new OtpNotSentException("Failed to send OTP. Please try again later.");
+        }
+        return "OTP sent successfully. Please check your phone for the OTP.";
+    }
+
+    public void resendEmail(String email){
+        String token = UUID.randomUUID().toString();
+        VerificationToken verificationToken = new VerificationToken();
+        verificationToken.setUser(userRepository.findByEmail(email).orElseThrow(
+                () -> new UserNotFoundException("User not found with email: " + email)
+        ));
+        verificationToken.setConfirmationToken(token);
+        verificationToken.setCreatedDate(LocalDateTime.now());
+        verificationToken.setExpiryDate(LocalDateTime.now().plusDays(1));
+        verificationTokenRepository.save(verificationToken);
+        try {
+            emailService.sendVerificationEmail(email, token);
+        } catch (MessagingException e) {
+            log.error("Failed to send verification email to {}: {}", email, e.getMessage());
+            throw new EmailNotSentException("Failed to send verification email. Please try again.");
+        }
+    }
 }
