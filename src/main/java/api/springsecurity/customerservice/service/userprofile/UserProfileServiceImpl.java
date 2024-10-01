@@ -36,11 +36,10 @@ public class UserProfileServiceImpl implements UserProfileService {
      */
     @Override
     public ProfileResponse getProfile() {
-        String username = userUtil.getUserName();
-        log.info("Getting user profile for user: {}", username);
-        Optional<UserProfile> profile = userProfileRepository.findByUser_Username(username);
+        UUID userId = userUtil.getCurrentUserId();
+        Optional<UserProfile> profile = userProfileRepository.findByUser_Id(userId);
         if(profile.isPresent()) {
-            log.info("User profile found for user: {}", username);
+            log.info("User profile found for user: {}", userId);
             UserProfile userProfile = profile.get();
             return ProfileResponse.builder()
                     .id(userProfile.getId())
@@ -50,8 +49,8 @@ public class UserProfileServiceImpl implements UserProfileService {
                     .phoneNumber(userProfile.getUser().getPhone())
                     .build();
         }
-        log.warn("User profile not found for user: {}", username);
-        throw new ProfileNotFoundException(String.format("Profile with username %s not found", username));
+        log.warn("User profile not found for user: {}", userId);
+        throw new ProfileNotFoundException(String.format("Profile with username %s not found", userId));
     }
 
 
@@ -65,10 +64,10 @@ public class UserProfileServiceImpl implements UserProfileService {
      */
     @Override
     public ProfileResponse updateProfile(ProfileRequest request) {
-        String username = userUtil.getUserName();
-        Optional<UserProfile> profile = userProfileRepository.findByUser_Username(username);
+        UUID userId = userUtil.getCurrentUserId();
+        Optional<UserProfile> profile = userProfileRepository.findByUser_Id(userId);
 
-        UserProfile userProfile = profile.orElseThrow(() -> new ProfileNotFoundException("Profile not found for user: " + username));
+        UserProfile userProfile = profile.orElseThrow(() -> new ProfileNotFoundException("Profile not found for user: " + userId));
         boolean updated = updateUserProfileFields(request, userProfile);
 
         if (updated) {
@@ -81,7 +80,11 @@ public class UserProfileServiceImpl implements UserProfileService {
 
 
     /**
-     * Updates the fields of the {@link UserProfile} based on the provided {@link ProfileRequest}.
+     * Updates the fields of the given {@link UserProfile} based on the values provided in the {@link ProfileRequest}.
+     *
+     * <p>This method checks each field in the {@link ProfileRequest} for validity and changes compared to the current values
+     * in the {@link UserProfile}. If a new value is valid and different from the current value, the field in
+     * {@link UserProfile} is updated.</p>
      *
      * @param request the {@link ProfileRequest} containing the new values for the profile fields
      * @param userProfile the {@link UserProfile} to be updated
@@ -90,19 +93,19 @@ public class UserProfileServiceImpl implements UserProfileService {
     private boolean updateUserProfileFields(ProfileRequest request, UserProfile userProfile) {
         boolean updated = false;
 
-        if (isValidField(request.getUsername())) {
+        if (isValidField(request.getUsername()) && !request.getUsername().equals(userProfile.getUser().getUsername())) {
             userProfile.getUser().setUsername(request.getUsername());
             updated = true;
         }
-        if (isValidField(request.getEmail())) {
+        if (isValidField(request.getEmail()) && !request.getEmail().equals(userProfile.getUser().getEmail())) {
             userProfile.getUser().setEmail(request.getEmail());
             updated = true;
         }
-        if (isValidField(request.getProfilePicture())) {
+        if (isValidField(request.getProfilePicture()) && !request.getProfilePicture().equals(userProfile.getProfilePicture())) {
             userProfile.setProfilePicture(request.getProfilePicture());
             updated = true;
         }
-        if (isValidField(request.getPhoneNumber())) {
+        if (isValidField(request.getPhoneNumber()) && !request.getPhoneNumber().equals(userProfile.getUser().getPhone())) {
             userProfile.getUser().setPhone(request.getPhoneNumber());
             updated = true;
         }
@@ -121,6 +124,17 @@ public class UserProfileServiceImpl implements UserProfileService {
     }
 
 
+    /**
+     * Deletes the account of the currently authenticated user.
+     *
+     * <p>This method retrieves the ID of the currently authenticated user and marks their account as locked.
+     * If the user is not found, a {@link UserNotFoundException} is thrown. Once the user is marked as locked,
+     * their account is considered deleted. A log entry is created to record the deletion, and a
+     * {@link ProfileResponse} with a success message is returned.</p>
+     *
+     * @return a {@link ProfileResponse} containing a message confirming that the user account was deleted successfully
+     * @throws UserNotFoundException if no user is found with the current user ID
+     */
     @Override
     public ProfileResponse deleteAccount() {
         UUID userId = userUtil.getCurrentUserId();

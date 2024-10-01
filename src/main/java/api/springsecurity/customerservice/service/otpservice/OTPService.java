@@ -6,8 +6,6 @@ import api.springsecurity.customerservice.entity.User;
 import api.springsecurity.customerservice.payload.OTPRequest;
 import api.springsecurity.customerservice.repositories.UserRepository;
 import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
@@ -86,11 +84,8 @@ public class OTPService {
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
-            String responseBody = Objects.requireNonNull(response.body()).string();
-            JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
-            String message = jsonResponse.get("message").getAsString();
 
-            if ("1105".equals(jsonResponse.get("code").getAsString())) {
+            if (!response.isSuccessful()) {
                 throw new InvalidOTPException("Invalid OTP. Please try again.");
             }
 
@@ -98,7 +93,7 @@ public class OTPService {
             user.ifPresent(this::enableUserIfDisabled);
 
             return RegisterResponse.builder()
-                    .message(message)
+                    .message(response.message())
                     .build();
         } catch (IOException e) {
             throw new InvalidTokenFormatException("Failed to verify OTP due to an exception: " + e.getMessage());
@@ -122,7 +117,7 @@ public class OTPService {
         while (attempt < 3) {
             try (Response response = client.newCall(request).execute()) {
                 if (response.isSuccessful()) {
-                    return Objects.requireNonNull(response.body()).string();
+                    return "OTP sent successfully. Please enter this code within 5 minutes to complete your authentication.";
                 }
                 log.error("Attempt {} failed: {}", attempt + 1, response.message());
             }

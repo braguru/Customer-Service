@@ -6,7 +6,7 @@ import lombok.Getter;
 
 @Builder
 @Getter
-//@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ProfileResponse {
     private Long id;
     private String username;
