@@ -3,6 +3,7 @@ package api.springsecurity.customerservice.exceptions;
 import api.springsecurity.customerservice.dto.ErrorResponse;
 import com.twilio.exception.ApiException;
 import jakarta.mail.MessagingException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -81,7 +82,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(value = {EmailAlreadyExistException.class, UserAlreadyExistsException.class,
-            PhoneNumberAlreadyExistsException.class})
+            PhoneNumberAlreadyExistsException.class, DataIntegrityViolationException.class})
     public ResponseEntity<ErrorResponse> handleConflictException(Exception ex) {
         ErrorResponse errorResponse = new ErrorResponse(ex.getMessage());
         return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
