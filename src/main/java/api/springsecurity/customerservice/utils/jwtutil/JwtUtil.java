@@ -13,9 +13,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 
 import static api.springsecurity.customerservice.exceptions.CustomExceptions.*;
@@ -34,7 +32,7 @@ public class JwtUtil {
     @Value("${JWT_SECRET}")
     private String secret;
 
-    private static final long TOKEN_VALIDITY = 1000 * 60 * 60; // 1 hour
+    private static final long TOKEN_VALIDITY = 1000 * 60 * 60L; // 1 hour
 
     /**
      * Generates a JWT token for the given user.
@@ -96,27 +94,8 @@ public class JwtUtil {
      * @throws JsonProcessingException if there is an issue parsing the token payload
      */
     public String extractUser(String token) throws JsonProcessingException {
-//        String[] chunks = token.split("\\.");
-//        if (chunks.length < 2) {
-//            throw new CustomExceptions.InvalidTokenFormatException("Token does not contain a valid payload");
-//        }
-//        Base64.Decoder decoder = Base64.getUrlDecoder();
-//        String payload = new String(decoder.decode(chunks[1]));
-//        try{
-//            JsonNode jsonNode = objectMapper.readTree(payload);
-//
-//            JsonNode usernameNode = jsonNode.get("username");
-//          if (usernameNode != null && !usernameNode.asText().isEmpty()) {
-//                return usernameNode.asText();
-//        } else {
-//            throw new CustomExceptions.InvalidTokenPayloadException("Token payload does not contain username.");
-//        }
-//        } catch (JsonProcessingException e) {
-//            throw new CustomExceptions.JsonProcessException("Error extracting username from token" + e);
-//
-//        }
-        return extractClaim(token, claim->claim.get("username").toString());
-//        return extractAllClaims(token).get("username").toString();
+        return extractClaim(token, claim->claim.get("id").toString());
+
     }
 
     /**
@@ -169,7 +148,7 @@ public class JwtUtil {
      */
     public Boolean validateToken(String token, UserDetails userDetails) throws JsonProcessingException {
         final String user = extractUser(token);
-        return (user.equals(userDetails.getUsername()) && !isTokenExpired(token));
+        return (user.equals(((User)userDetails).getId().toString()) && !isTokenExpired(token));
     }
 
     /**
