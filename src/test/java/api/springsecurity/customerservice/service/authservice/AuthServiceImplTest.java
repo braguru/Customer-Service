@@ -8,6 +8,7 @@ import api.springsecurity.customerservice.entity.VerificationToken;
 import api.springsecurity.customerservice.entity.enums.Role;
 import api.springsecurity.customerservice.exceptions.CustomExceptions.UserAlreadyExistsException;
 import api.springsecurity.customerservice.payload.LoginRequest;
+import api.springsecurity.customerservice.payload.OTPRequest;
 import api.springsecurity.customerservice.payload.RegisterRequest;
 import api.springsecurity.customerservice.repositories.UserProfileRepository;
 import api.springsecurity.customerservice.repositories.UserRepository;
@@ -15,15 +16,13 @@ import api.springsecurity.customerservice.repositories.VerificationTokenReposito
 import api.springsecurity.customerservice.service.emailservice.EmailService;
 import api.springsecurity.customerservice.service.otpservice.OTPService;
 import api.springsecurity.customerservice.utils.jwtutil.JwtUtil;
+import api.springsecurity.customerservice.utils.userutil.OTPAuthenticationToken;
 import jakarta.mail.MessagingException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -71,6 +70,8 @@ class AuthServiceImplTest {
     private User user;
     private VerificationToken token;
     private LoginRequest loginRequest;
+    private OTPRequest otpRequest;
+    private RegisterRequest registerRequest;
 
     @BeforeEach
     void setUp() {
@@ -88,7 +89,12 @@ class AuthServiceImplTest {
         token.setUser(user);
         token.setExpiryDate(LocalDateTime.now().plusMinutes(10)); // valid token
 
-
+        otpRequest = new OTPRequest("1234567890", "123456");
+        registerRequest = RegisterRequest.builder()
+                .phone("1234567890")
+                .username("testUser")
+                .role("USER")
+                .build();
     }
 
     private static class RegisterTestCase {
@@ -144,7 +150,7 @@ class AuthServiceImplTest {
     @ParameterizedTest
     @MethodSource("registerUserTestCases")
     void testRegisterUser(RegisterTestCase testCase) {
-        RegisterRequest registerRequest = new RegisterRequest(testCase.email, testCase.username, testCase.password, testCase.phone, testCase.role);
+        registerRequest = new RegisterRequest(testCase.email, testCase.username, testCase.password, testCase.phone, testCase.role);
 
         // Arrange - Mock repository calls based on test case expectations
 
@@ -196,7 +202,7 @@ class AuthServiceImplTest {
     @Test
     void testHandleEmailBasedRegistration_Success() throws Exception {
         // Arrange
-        RegisterRequest registerRequest = new RegisterRequest("john_doe", "john@example.com", "Password123!", null, "USER");
+        registerRequest = new RegisterRequest("john_doe", "john@example.com", "Password123!", null, "USER");
 
         // Mock password encoding
         when(passwordEncoder.encode(registerRequest.password())).thenReturn("encodedPassword");
@@ -230,8 +236,7 @@ class AuthServiceImplTest {
 
     @Test
     void testHandleEmailBasedRegistration_PasswordValidationFailure() {
-        // Arrange
-        RegisterRequest registerRequest = new RegisterRequest("john_doe", "john@example.com", "short", null, "USER");
+        registerRequest = new RegisterRequest("john_doe", "john@example.com", "short", null, "USER");
 
         // Act & Assert
         PasswordValidationException exception = assertThrows(
@@ -246,7 +251,7 @@ class AuthServiceImplTest {
     @Test
     void testHandleEmailBasedRegistration_PhoneProvided() {
         // Arrange
-        RegisterRequest registerRequest = new RegisterRequest("john_doe", "john@example.com", "Password123!", "1234567890", "USER");
+        registerRequest = new RegisterRequest("john_doe", "john@example.com", "Password123!", "1234567890", "USER");
 
         // Act
         NoEmailORPhoneNumberException exception = assertThrows(NoEmailORPhoneNumberException.class,
@@ -259,7 +264,7 @@ class AuthServiceImplTest {
     @Test
     void testHandleEmailBasedRegistration_EmailSendingFailure() throws Exception {
         // Arrange
-        RegisterRequest registerRequest = new RegisterRequest("john_doe", "john@example.com", "Password123!", null, "USER");
+        registerRequest = new RegisterRequest("john_doe", "john@example.com", "Password123!", null, "USER");
 
         // Mock password encoding
         when(passwordEncoder.encode(registerRequest.password())).thenReturn("encodedPassword");
@@ -293,7 +298,36 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void handlePhoneBasedRegistration() {
+    void testHandlePhoneBasedRegistrationSuccessful() {
+        when(userRepository.save(any(User.class))).thenReturn(user);
+        when(userProfileRepository.save(any(UserProfile.class))).thenAnswer(i -> i.getArgument(0));
+        when(otpService.sendOtp(any(User.class))).thenReturn("OTP sent successfully");
+
+        RegisterResponse response = authService.handlePhoneBasedRegistration(registerRequest);
+
+        assertNotNull(response);
+        assertEquals("testUser", response.getUsername());
+        assertEquals("1234567890", response.getPhone());
+        assertEquals("OTP sent successfully", response.getMessage());
+
+        verify(userRepository, times(1)).save(any(User.class));
+        verify(userProfileRepository, times(1)).save(any(UserProfile.class));
+        verify(otpService, times(1)).sendOtp(any(User.class));
+    }
+
+    @Test
+    void testHandlePhoneBasedRegistrationPasswordProvided() {
+        registerRequest = RegisterRequest.builder()
+                .phone("1234567890")
+                .username("testUser")
+                .password("Password123!")
+                .role("USER")
+                .build();
+        NoEmailORPhoneNumberException exception = assertThrows(NoEmailORPhoneNumberException.class,
+                () -> authService.handlePhoneBasedRegistration(registerRequest));
+
+        assertEquals("Password should not be provided for phone number-based registration.", exception.getMessage());
+        verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
@@ -468,6 +502,100 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void authenticateWithPhoneAndOtp() {
+    void testAuthenticateWithPhoneAndOtpSuccess() {
+        Authentication authentication = Mockito.mock(Authentication.class);
+
+        when(authenticationManager.authenticate(any(OTPAuthenticationToken.class))).thenReturn(authentication);
+        when(authentication.getDetails()).thenReturn(user);
+        when(jwtUtil.generateToken(user)).thenReturn("dummyToken");
+
+        LoginResponse response = authService.authenticateWithPhoneAndOtp(otpRequest);
+
+        assertNotNull(response);
+        assertEquals("dummyToken", response.getToken());
+        assertEquals("Login successful", response.getMessage());
+
+        verify(authenticationManager, times(1)).authenticate(any(OTPAuthenticationToken.class));
+        verify(jwtUtil, times(1)).generateToken(user);
     }
+
+    @Test
+    void testAuthenticateWithPhoneAndOtpInvalidOtp() {
+        when(authenticationManager.authenticate(any(OTPAuthenticationToken.class)))
+                .thenThrow(new AuthenticationException("OTP validation failed") {});
+
+        InvalidOTPException exception = assertThrows(InvalidOTPException.class,
+                () -> authService.authenticateWithPhoneAndOtp(otpRequest));
+
+        assertEquals("Invalid OTP. Please try again.", exception.getMessage());
+
+        verify(authenticationManager, times(1)).authenticate(any(OTPAuthenticationToken.class));
+        verify(jwtUtil, times(0)).generateToken(any(User.class));
+    }
+
+    @Test
+    void testResendOTPSuccess() {
+        when(userRepository.findByPhone("1234567890")).thenReturn(Optional.of(user));
+        when(otpService.sendOtp(any())).thenReturn("OTP sent successfully.");
+
+        String result = authService.resendOTP(otpRequest);
+        assertEquals("OTP sent successfully. Please check your phone for the OTP.", result);
+        verify(userRepository, times(1)).findByPhone("1234567890");
+        verify(otpService, times(1)).sendOtp(any(User.class));
+    }
+
+    @Test
+    void testResendOTPUserNotFound() {
+        when(userRepository.findByPhone(anyString())).thenReturn(Optional.empty());
+
+        UserNotFoundException exception = assertThrows(UserNotFoundException.class,
+                () -> authService.resendOTP(otpRequest));
+        assertEquals("User not found with phone number: 1234567890", exception.getMessage());
+        verify(userRepository, times(1)).findByPhone("1234567890");
+    }
+
+    @Test
+    void testResendOTPFailsOtpNotSent() {
+        when(userRepository.findByPhone(anyString())).thenReturn(Optional.of(user));
+        when(otpService.sendOtp(any(User.class))).thenThrow(new OtpNotSentException("Error sending OTP"));
+
+        OtpNotSentException exception = assertThrows(OtpNotSentException.class,
+                () -> authService.resendOTP(otpRequest));
+        assertEquals("Failed to send OTP. Please try again later.", exception.getMessage());
+        verify(userRepository, times(1)).findByPhone("1234567890");
+        verify(otpService, times(1)).sendOtp(any(User.class));
+    }
+
+    @Test
+    void testResendEmailSuccess() throws MessagingException {
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
+        doNothing().when(emailService).sendVerificationEmail(anyString(), anyString());
+
+        authService.resendEmail(user.getEmail());
+
+        verify(userRepository, times(1)).findByEmail(anyString());
+        verify(verificationTokenRepository, times(1)).save(any(VerificationToken.class));
+        verify(emailService, times(1)).sendVerificationEmail(anyString(), anyString());
+    }
+
+    @Test
+    void testResendEmailUserNotFound() {
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+
+        UserNotFoundException exception = assertThrows(UserNotFoundException.class,
+                () -> authService.resendEmail(user.getEmail()));
+        assertEquals("User not found with email: user@example.com", exception.getMessage());
+    }
+
+    @Test
+    void testResendEmailFailsEmailNotSent() throws MessagingException {
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
+        doThrow(new MessagingException("Error sending email")).when(emailService)
+                .sendVerificationEmail(anyString(), anyString());
+
+        EmailNotSentException exception = assertThrows(EmailNotSentException.class,
+                () -> authService.resendEmail(user.getEmail()));
+        assertEquals("Failed to send verification email. Please try again.", exception.getMessage());
+    }
+
 }
