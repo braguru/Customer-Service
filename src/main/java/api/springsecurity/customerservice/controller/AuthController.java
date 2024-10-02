@@ -12,15 +12,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.concurrent.CompletableFuture;
-
 @RestController
 @RequestMapping("api/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
     private final AuthService authService;
-
     private final OTPService otpService;
 
     @PostMapping("/signup")
@@ -29,13 +26,10 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-
-
     @GetMapping("verify-email")
     public String emailVerification(@RequestParam String token){
         return authService.confirmToken(token);
     }
-
 
     @PostMapping("/verify-otp")
     public ResponseEntity<RegisterResponse> verifyOTP(@RequestBody OTPRequest otpRequest){
@@ -43,18 +37,28 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
         LoginResponse response = authService.loginUser(loginRequest);
         return ResponseEntity.ok(response);
     }
 
-
     @PostMapping("/login/phone")
     public ResponseEntity<LoginResponse> authenticateWithPhoneAndOtp(@Valid @RequestBody OTPRequest request){
         LoginResponse response = authService.authenticateWithPhoneAndOtp(request);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/resend-otp")
+    public ResponseEntity<String> resendOtp(@RequestBody OTPRequest otpRequest){
+        String response = authService.resendOTP(otpRequest);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/resend-email")
+    public ResponseEntity<String> resendEmail(@RequestParam String email){
+        authService.resendEmail(email);
+        return ResponseEntity.ok("Email sent successfully");
     }
 
 }

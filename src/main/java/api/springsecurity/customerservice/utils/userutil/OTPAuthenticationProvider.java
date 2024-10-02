@@ -16,29 +16,46 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class OTPAuthenticationProvider implements AuthenticationProvider {
 
-
     private final UserRepository userRepository;
-
     private final OTPService otpService;
 
+    /**
+     * Authenticates the user based on the provided phone number and OTP.
+     *
+     * <p>This method verifies the OTP using the {@link OTPService}. If the OTP is valid, it retrieves the user details
+     * from the {@link UserRepository} and returns an authenticated {@link OTPAuthenticationToken}. If the OTP or phone
+     * number is invalid, a {@link BadCredentialsException} is thrown.</p>
+     *
+     * @param authentication the authentication request object containing phone number and OTP
+     * @return a fully authenticated object including credentials
+     * @throws AuthenticationException if authentication fails due to invalid OTP or phone number
+     */
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         String phone = ((OTPAuthenticationToken) authentication).getPhoneNumber();
         String otp = (String) authentication.getCredentials();
 
-        // Verify OTP with third-party service
         OTPRequest otpRequest = new OTPRequest(phone, otp);
         RegisterResponse otpResponse = otpService.verifyOTP(otpRequest);
         if (!"OK".equals(otpResponse.getMessage())) {
             throw new BadCredentialsException("Invalid OTP");
         }
 
-        UserDetails userDetails = userRepository.findByPhoneAndLockedIsFalse(phone)
-                .orElseThrow(() -> new BadCredentialsException("Invalid phone number or OTP"));
+        UserDetails user = userRepository.findByPhone(phone)
+                .orElseThrow(() -> new BadCredentialsException("Invalid phone number"));
 
-        return new OTPAuthenticationToken(userDetails, userDetails.getAuthorities());
+        OTPAuthenticationToken otpAuthenticationToken = new OTPAuthenticationToken(phone, otp);
+        otpAuthenticationToken.setDetails(user);
+        return otpAuthenticationToken;
     }
 
+
+    /**
+     * Indicates whether this provider supports the indicated authentication object.
+     *
+     * @param authentication the authentication class to check
+     * @return true if the authentication object is assignable from {@link OTPAuthenticationToken}; false otherwise
+     */
     @Override
     public boolean supports(Class<?> authentication) {
         return OTPAuthenticationToken.class.isAssignableFrom(authentication);
