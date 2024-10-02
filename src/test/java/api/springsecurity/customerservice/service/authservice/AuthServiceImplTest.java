@@ -336,6 +336,7 @@ class AuthServiceImplTest {
 
         assertEquals("Password should not be provided for phone number-based registration.", exception.getMessage());
         verify(userRepository, never()).save(any(User.class));
+    }
 
     @Test
     void testSendVerificationEmail_Success() throws Exception {
