@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "arkesel")
 @Data
 public class OTPConfigurationProperties {
-
     private String apiKey;
     private String otpUrl;
     private String verifyOtpUrl;

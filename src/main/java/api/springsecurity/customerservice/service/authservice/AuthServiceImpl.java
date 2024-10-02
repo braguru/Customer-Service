@@ -412,7 +412,7 @@ public class AuthServiceImpl implements AuthService {
      * @throws DisabledException if the account is disabled or locked.
      * @throws BadCredentialsException if the credentials are invalid.
      */
-    private LoginResponse authenticateWithEmailAndPassword(LoginRequest loginRequest) {
+    LoginResponse authenticateWithEmailAndPassword(LoginRequest loginRequest) {
         try {
             Authentication authenticate = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
