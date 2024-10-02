@@ -395,7 +395,7 @@ public class AuthServiceImpl implements AuthService {
                     .build();
         } catch (AuthenticationException e) {
             log.error("OTP validation failed for user with phone number: {}. Reason: {}", otpRequest.number(), e.getMessage());
-            throw new InvalidOTPException("Invalid OTP. Please try again. ");
+            throw new InvalidOTPException("Invalid OTP. Please try again.");
         }
     }
 
@@ -465,6 +465,19 @@ public class AuthServiceImpl implements AuthService {
         return "OTP sent successfully. Please check your phone for the OTP.";
     }
 
+
+    /**
+     * Resends the verification email to the user associated with the provided email address.
+     *
+     * <p>This method generates a new verification token for the user, saves it in the repository,
+     * and sends a verification email containing the token. If the user is not found, a
+     * {@link UserNotFoundException} is thrown. If the email cannot be sent, an
+     * {@link EmailNotSentException} is thrown.</p>
+     *
+     * @param email the email address of the user to whom the verification email will be resent
+     * @throws UserNotFoundException if no user is found with the provided email address
+     * @throws EmailNotSentException if there is an error sending the verification email
+     */
     public void resendEmail(String email){
         String token = UUID.randomUUID().toString();
         VerificationToken verificationToken = new VerificationToken();

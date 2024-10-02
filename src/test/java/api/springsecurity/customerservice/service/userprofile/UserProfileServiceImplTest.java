@@ -44,7 +44,7 @@ class UserProfileServiceImplTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
 
-        username = "testuser";
+        username = "tester";
         userId = UUID.randomUUID();
 
         user = new User();
@@ -59,7 +59,7 @@ class UserProfileServiceImplTest {
         userProfile.setProfilePicture("profile-pic-url");
 
         profileRequest = ProfileRequest.builder()
-                .username(user.getUsername())
+                .username("test")
                 .email(user.getEmail())
                 .profilePicture(userProfile.getProfilePicture())
                 .phoneNumber(user.getPhone())
@@ -70,8 +70,8 @@ class UserProfileServiceImplTest {
 
     @Test
     void testGetProfile_Success() {
-        when(userUtil.getUserName()).thenReturn(username);
-        when(userProfileRepository.findByUser_Username(username)).thenReturn(Optional.of(userProfile));
+        when(userUtil.getCurrentUserId()).thenReturn(userId);
+        when(userProfileRepository.findByUser_Id(userId)).thenReturn(Optional.of(userProfile));
 
         ProfileResponse response = userProfileService.getProfile();
 
@@ -81,52 +81,51 @@ class UserProfileServiceImplTest {
         assertEquals("profile-pic-url", response.getProfilePicture());
         assertEquals("+1234567890", response.getPhoneNumber());
 
-        verify(userProfileRepository, times(1)).findByUser_Username(username);
-        verify(userUtil, times(1)).getUserName();
+        verify(userProfileRepository, times(1)).findByUser_Id(userId);
+        verify(userUtil, times(1)).getCurrentUserId();
     }
 
     @Test
     void testGetProfile_ProfileNotFound() {
-        when(userUtil.getUserName()).thenReturn(username);
-        when(userProfileRepository.findByUser_Username(username)).thenReturn(Optional.empty());
+        when(userUtil.getCurrentUserId()).thenReturn(userId);
+        when(userProfileRepository.findByUser_Id(userId)).thenReturn(Optional.empty());
 
         assertThrows(ProfileNotFoundException.class, () -> userProfileService.getProfile());
-        verify(userProfileRepository, times(1)).findByUser_Username(username);
-        verify(userUtil, times(1)).getUserName();
+        verify(userProfileRepository, times(1)).findByUser_Id(userId);
+        verify(userUtil, times(1)).getCurrentUserId();
     }
 
     @Test
     void testUpdateProfile_Success() {
-        when(userUtil.getUserName()).thenReturn(username);
-        when(userProfileRepository.findByUser_Username(username)).thenReturn(Optional.of(userProfile));
+        when(userUtil.getCurrentUserId()).thenReturn(userId);
+        when(userProfileRepository.findByUser_Id(userId)).thenReturn(Optional.of(userProfile));
 
         ProfileResponse response = userProfileService.updateProfile(profileRequest);
 
         verify(userProfileRepository, times(1)).save(userProfile);
         assertEquals("Profile updated successfully", response.getMessage());
-        verify(userUtil, times(1)).getUserName();
-
+        verify(userUtil, times(1)).getCurrentUserId();
     }
 
     @Test
     void testUpdateProfile_ProfileNotFound() {
-        when(userUtil.getUserName()).thenReturn(username);
-        when(userProfileRepository.findByUser_Username(username)).thenReturn(Optional.empty());
+        when(userUtil.getCurrentUserId()).thenReturn(userId);
+        when(userProfileRepository.findByUser_Id(userId)).thenReturn(Optional.empty());
 
         assertThrows(ProfileNotFoundException.class, () -> userProfileService.updateProfile(profileRequest));
-        verify(userProfileRepository, times(1)).findByUser_Username(username);
-        verify(userUtil, times(1)).getUserName();
+        verify(userProfileRepository, times(1)).findByUser_Id(userId);
+        verify(userUtil, times(1)).getCurrentUserId();
     }
 
     @Test
     void testUpdateProfile_NoValidFields() {
         ProfileRequest emptyRequest = ProfileRequest.builder().build();
-        when(userUtil.getUserName()).thenReturn(username);
-        when(userProfileRepository.findByUser_Username(username)).thenReturn(Optional.of(userProfile));
+        when(userUtil.getCurrentUserId()).thenReturn(userId);
+        when(userProfileRepository.findByUser_Id(userId)).thenReturn(Optional.of(userProfile));
 
         assertThrows(ProfileDataException.class, () -> userProfileService.updateProfile(emptyRequest));
-        verify(userProfileRepository, times(1)).findByUser_Username(username);
-        verify(userUtil, times(1)).getUserName();
+        verify(userProfileRepository, times(1)).findByUser_Id(userId);
+        verify(userUtil, times(1)).getCurrentUserId();
     }
 
     @Test

@@ -22,7 +22,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -143,5 +143,26 @@ class AuthControllerTest {
                         .content(objectMapper.writeValueAsString(otpRequest)))
                 .andExpect(status().isOk())
                 .andExpect(content().json(objectMapper.writeValueAsString(loginResponse)));
+    }
+
+    @Test
+    void testResendOtp() throws Exception {
+        when(authService.resendOTP(any(OTPRequest.class))).thenReturn("OTP sent successfully. Please check your phone for the OTP.");
+
+        mockMvc.perform(post("/api/v1/auth/resend-otp")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(otpRequest)))
+                .andExpect(status().isOk())
+                .andExpect(content().string("OTP sent successfully. Please check your phone for the OTP."));
+    }
+
+    @Test
+    void testResendEmail() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/resend-email")
+                        .param("email", registerRequest.email()))
+                .andExpect(status().isOk())
+                .andExpect(content().string("Email sent successfully"));
+
+        verify(authService, times(1)).resendEmail(registerRequest.email());
     }
 }
