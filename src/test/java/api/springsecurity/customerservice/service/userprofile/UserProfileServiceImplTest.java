@@ -44,6 +44,7 @@ class UserProfileServiceImplTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
 
+
         username = "tester";
         userId = UUID.randomUUID();
 
@@ -59,6 +60,7 @@ class UserProfileServiceImplTest {
         userProfile.setProfilePicture("profile-pic-url");
 
         profileRequest = ProfileRequest.builder()
+
                 .username("test")
                 .email(user.getEmail())
                 .profilePicture(userProfile.getProfilePicture())
@@ -72,7 +74,7 @@ class UserProfileServiceImplTest {
     void testGetProfile_Success() {
         when(userUtil.getCurrentUserId()).thenReturn(userId);
         when(userProfileRepository.findByUser_Id(userId)).thenReturn(Optional.of(userProfile));
-
+       
         ProfileResponse response = userProfileService.getProfile();
 
         assertNotNull(response);

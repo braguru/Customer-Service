@@ -22,7 +22,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+
 import static org.mockito.Mockito.*;
+
+import static org.mockito.Mockito.when;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -145,6 +149,7 @@ class AuthControllerTest {
                 .andExpect(content().json(objectMapper.writeValueAsString(loginResponse)));
     }
 
+
     @Test
     void testResendOtp() throws Exception {
         when(authService.resendOTP(any(OTPRequest.class))).thenReturn("OTP sent successfully. Please check your phone for the OTP.");
@@ -165,4 +170,5 @@ class AuthControllerTest {
 
         verify(authService, times(1)).resendEmail(registerRequest.email());
     }
+
 }
