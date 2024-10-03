@@ -17,7 +17,7 @@ spring:
     database: postgresql
   flyway:
     baseline-description: Baseline migration
-    baseline-version: 1
+    baseline-version: 0
     baseline-on-migrate: true
     enabled: true
     locations: classpath:db/migration
@@ -25,6 +25,33 @@ spring:
     password: ${DATABASE_PASSWORD}
     url: ${DATABASE_URL}
 
+  mail:
+    host: ${EMAIL_HOST}
+    port: ${EMAIL_PORT}
+    username: ${EMAIL_USERNAME}
+    password: ${EMAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+logging:
+  level:
+    org:
+      springframework:
+        security=TRACE:
+        web:
+          multipart: DEBUG
+          servlet: DEBUG
+
+
 server:
   port: 9090
-
