@@ -13,7 +13,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -60,7 +62,6 @@ class UserProfileControllerTest {
         profileRequest = ProfileRequest.builder()
                 .username(user.getUsername())
                 .email(user.getEmail())
-                .profilePicture(userProfile.getProfilePicture())
                 .phoneNumber(user.getPhone())
                 .build();
 
@@ -86,9 +87,14 @@ class UserProfileControllerTest {
     void testUpdateProfile() throws Exception {
         when(userProfileService.updateProfile(any(ProfileRequest.class))).thenReturn(profileResponse);
 
-        mockMvc.perform(put("/api/v1/profile")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(profileRequest)))
+        MockMultipartFile profilePictureFile = new MockMultipartFile("profilePicture", "filename.jpg", "image/jpeg", "image content".getBytes());
+
+        mockMvc.perform(multipart(HttpMethod.PUT, "/api/v1/profile")
+                        .file(profilePictureFile)  // Upload the profile picture
+                        .param("username", profileRequest.getUsername())
+                        .param("email", profileRequest.getEmail())
+                        .param("phoneNumber", profileRequest.getPhoneNumber())
+                        .contentType(MediaType.MULTIPART_FORM_DATA))
                 .andExpect(status().isOk())
                 .andExpect(content().json(objectMapper.writeValueAsString(profileResponse)));
     }
