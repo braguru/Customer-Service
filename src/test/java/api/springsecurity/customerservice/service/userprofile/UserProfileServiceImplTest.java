@@ -6,13 +6,16 @@ import api.springsecurity.customerservice.entity.UserProfile;
 import api.springsecurity.customerservice.payload.ProfileRequest;
 import api.springsecurity.customerservice.repositories.UserProfileRepository;
 import api.springsecurity.customerservice.repositories.UserRepository;
+import api.springsecurity.customerservice.utils.S3Util;
 import api.springsecurity.customerservice.utils.userutil.UserUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -34,11 +37,16 @@ class UserProfileServiceImplTest {
     @Mock
     UserRepository userRepository;
 
+    @Mock
+    private S3Util s3Util;
+
     private User user;
     private UserProfile userProfile;
     private ProfileRequest profileRequest;
     private String username;
     private UUID userId;
+    private MultipartFile file;
+
 
     @BeforeEach
     void setUp() {
@@ -58,14 +66,15 @@ class UserProfileServiceImplTest {
         userProfile.setUser(user);
         userProfile.setProfilePicture("profile-pic-url");
 
+        file = mock(MultipartFile.class);
+        when(file.isEmpty()).thenReturn(true);
         profileRequest = ProfileRequest.builder()
                 .username("test")
                 .email(user.getEmail())
-                .profilePicture(userProfile.getProfilePicture())
+                .profilePicture(file)
                 .phoneNumber(user.getPhone())
                 .build();
     }
-
 
 
     @Test
@@ -96,7 +105,7 @@ class UserProfileServiceImplTest {
     }
 
     @Test
-    void testUpdateProfile_Success() {
+    void testUpdateProfile_Success() throws IOException {
         when(userUtil.getCurrentUserId()).thenReturn(userId);
         when(userProfileRepository.findByUser_Id(userId)).thenReturn(Optional.of(userProfile));
 
@@ -104,8 +113,27 @@ class UserProfileServiceImplTest {
 
         verify(userProfileRepository, times(1)).save(userProfile);
         assertEquals("Profile updated successfully", response.getMessage());
+        assertEquals("test", userProfile.getUser().getUsername());  // Ensure username updated
+        assertEquals("testuser@example.com", userProfile.getUser().getEmail());  // Ensure email remains unchanged
+        assertEquals("profile-pic-url", userProfile.getProfilePicture());  // Profile picture remains unchanged
         verify(userUtil, times(1)).getCurrentUserId();
     }
+
+    @Test
+    void testUpdateProfile_WithProfilePicture() throws IOException {
+        when(userUtil.getCurrentUserId()).thenReturn(userId);
+        when(userProfileRepository.findByUser_Id(userId)).thenReturn(Optional.of(userProfile));
+
+        when(file.isEmpty()).thenReturn(false);  // New profile picture provided
+        when(s3Util.uploadFile(file)).thenReturn("new-profile-pic-url");  // Mock S3 upload
+
+        ProfileResponse response = userProfileService.updateProfile(profileRequest);
+
+        verify(userProfileRepository, times(1)).save(userProfile);
+        assertEquals("Profile updated successfully", response.getMessage());
+        assertEquals("new-profile-pic-url", userProfile.getProfilePicture());  // Ensure profile picture updated
+    }
+
 
     @Test
     void testUpdateProfile_ProfileNotFound() {
