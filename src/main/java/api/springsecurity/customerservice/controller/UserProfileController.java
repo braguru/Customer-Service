@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/profile")
@@ -20,9 +22,9 @@ public class UserProfileController {
         return ResponseEntity.ok(profileResponse);
     }
 
-    @PutMapping
-    public ResponseEntity<ProfileResponse> updateProfile(@RequestBody ProfileRequest request) {
-        ProfileResponse profileResponse = userProfileService.updateProfile(request);
+    @PutMapping(consumes = "multipart/form-data")
+    public ResponseEntity<ProfileResponse> updateProfile(@ModelAttribute ProfileRequest profileData) throws IOException {
+        ProfileResponse profileResponse = userProfileService.updateProfile(profileData);
         return ResponseEntity.ok(profileResponse);
     }
 
