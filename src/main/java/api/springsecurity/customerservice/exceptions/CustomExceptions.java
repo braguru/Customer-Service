@@ -1,7 +1,5 @@
 package api.springsecurity.customerservice.exceptions;
 
-import org.springframework.security.core.AuthenticationException;
-
 public class CustomExceptions {
 
     private CustomExceptions() {
@@ -181,6 +179,18 @@ public class CustomExceptions {
     public static class AuthenticationException extends org.springframework.security.core.AuthenticationException {
         public AuthenticationException(String msg) {
             super(msg);
+        }
+    }
+
+    public static class S3Exception extends RuntimeException {
+        public S3Exception(String message) {
+            super(message);
+        }
+    }
+
+    public static class InvalidFileTypeException extends RuntimeException {
+        public InvalidFileTypeException(String message) {
+            super(message);
         }
     }
 }
