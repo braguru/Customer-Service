@@ -187,6 +187,14 @@ public class UserProfileServiceImpl implements UserProfileService {
         return field != null && !field.isEmpty();
     }
 
+    public String deleteProfilePicture(String pictureLink){
+        UUID userId = userUtil.getCurrentUserId();
+        UserProfile profile = userProfileRepository.findByUser_Id(userId).orElseThrow(() -> new ProfileNotFoundException("Profile not found for user: " + userId));
+        profile.setProfilePicture(null);
+        userProfileRepository.save(profile);
+        return s3Util.handleFileDeletion(pictureLink);
+    }
+
     /**
      * Deletes the account of the currently authenticated user.
      *

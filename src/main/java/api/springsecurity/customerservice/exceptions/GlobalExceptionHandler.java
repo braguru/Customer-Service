@@ -40,7 +40,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(value = {InvalidTokenPayloadException.class, EmailAlreadyConfirmedException.class,
             InvalidTokenFormatException.class, NoEmailORPhoneNumberException.class, PasswordValidationException.class,
             JsonProcessException.class, ProfileDataException.class, LoginException.class, BadCredentialsException.class,
-            InvalidPropertiesFormatException.class})
+            InvalidPropertiesFormatException.class, S3Exception.class, InvalidFileTypeException.class,})
     public ResponseEntity<ErrorResponse> handleInvalidTokenPayloadException(Exception ex) {
         ErrorResponse errorResponse = new ErrorResponse(ex.getMessage());
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);

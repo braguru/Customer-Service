@@ -11,5 +11,7 @@ public interface UserProfileService {
 
     ProfileResponse updateProfile(ProfileRequest request) throws IOException;
 
+    String deleteProfilePicture(String pictureLink);
+
     ProfileResponse deleteAccount();
 }
