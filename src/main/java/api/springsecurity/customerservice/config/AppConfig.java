@@ -15,6 +15,10 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
 
 import java.util.List;
 import java.util.Optional;
@@ -108,5 +112,18 @@ public class AppConfig {
     public AuthenticationManager authenticationManager() {
         List<AuthenticationProvider> providers = List.of(authenticationProvider(), otpAuthenticationProvider);
         return new ProviderManager(providers);
+    }
+
+    @Bean
+    public S3Client s3(){
+        AwsBasicCredentials awsBasicCredentials = AwsBasicCredentials.create(
+                System.getenv("AWS_ACCESS_KEY_ID"),
+                System.getenv("AWS_SECRET_ACCESS_KEY")
+                );
+
+        return S3Client.builder()
+                .region(Region.of(System.getenv("S3_REGION")))
+                .credentialsProvider(StaticCredentialsProvider.create(awsBasicCredentials))
+                .build();
     }
 }

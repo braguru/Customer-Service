@@ -5,13 +5,17 @@ import api.springsecurity.customerservice.entity.UserProfile;
 import api.springsecurity.customerservice.payload.ProfileRequest;
 import api.springsecurity.customerservice.repositories.UserProfileRepository;
 import api.springsecurity.customerservice.repositories.UserRepository;
+import api.springsecurity.customerservice.utils.S3Util;
 import api.springsecurity.customerservice.utils.userutil.UserUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import static api.springsecurity.customerservice.exceptions.CustomExceptions.*;
 
@@ -23,6 +27,7 @@ public class UserProfileServiceImpl implements UserProfileService {
     private final UserUtil userUtil;
     private final UserProfileRepository userProfileRepository;
     private final UserRepository userRepository;
+    private final S3Util s3Util;
 
 
     /**
@@ -47,6 +52,10 @@ public class UserProfileServiceImpl implements UserProfileService {
                     .email(userProfile.getUser().getEmail())
                     .profilePicture(userProfile.getProfilePicture())
                     .phoneNumber(userProfile.getUser().getPhone())
+                    .idNumber(userProfile.getIdNumber())
+                    .idType(userProfile.getIdType())
+                    .bio(userProfile.getBio())
+                    .dateOfBirth(userProfile.getDateOfBirth())
                     .build();
         }
         log.warn("User profile not found for user: {}", userId);
@@ -63,7 +72,7 @@ public class UserProfileServiceImpl implements UserProfileService {
      * @throws ProfileDataException if no valid fields are provided for update
      */
     @Override
-    public ProfileResponse updateProfile(ProfileRequest request) {
+    public ProfileResponse updateProfile(ProfileRequest request) throws IOException {
         UUID userId = userUtil.getCurrentUserId();
         Optional<UserProfile> profile = userProfileRepository.findByUser_Id(userId);
 
@@ -90,28 +99,83 @@ public class UserProfileServiceImpl implements UserProfileService {
      * @param userProfile the {@link UserProfile} to be updated
      * @return true if at least one field was updated; false otherwise
      */
-    private boolean updateUserProfileFields(ProfileRequest request, UserProfile userProfile) {
+    private boolean updateUserProfileFields(ProfileRequest request, UserProfile userProfile) throws IOException {
         boolean updated = false;
 
-        if (isValidField(request.getUsername()) && !request.getUsername().equals(userProfile.getUser().getUsername())) {
-            userProfile.getUser().setUsername(request.getUsername());
-            updated = true;
-        }
-        if (isValidField(request.getEmail()) && !request.getEmail().equals(userProfile.getUser().getEmail())) {
-            userProfile.getUser().setEmail(request.getEmail());
-            updated = true;
-        }
-        if (isValidField(request.getProfilePicture()) && !request.getProfilePicture().equals(userProfile.getProfilePicture())) {
-            userProfile.setProfilePicture(request.getProfilePicture());
-            updated = true;
-        }
-        if (isValidField(request.getPhoneNumber()) && !request.getPhoneNumber().equals(userProfile.getUser().getPhone())) {
-            userProfile.getUser().setPhone(request.getPhoneNumber());
-            updated = true;
-        }
+        updated |= updateFieldIfDifferent(request.getUsername(), userProfile.getUser().getUsername(),
+                userProfile.getUser()::setUsername);
+
+        updated |= updateFieldIfDifferent(request.getEmail(), userProfile.getUser().getEmail(),
+                userProfile.getUser()::setEmail);
+
+        updated |= updateProfilePicture(request.getProfilePicture(), userProfile);
+
+        updated |= updateFieldIfDifferent(request.getPhoneNumber(), userProfile.getUser().getPhone(),
+                userProfile.getUser()::setPhone);
+
+        updated |= updateFieldIfDifferent(request.getBio(), userProfile.getBio(), userProfile::setBio);
+
+        updated |= updateFieldIfDifferent(request.getDateOfBirth(), userProfile.getDateOfBirth(),
+                userProfile::setDateOfBirth);
+
+        updated |= updateFieldIfDifferent(request.getIdType(), userProfile.getIdType(), userProfile::setIdType);
+
+        updated |= updateFieldIfDifferent(request.getIdNumber(), userProfile.getIdNumber(),
+                userProfile::setIdNumber);
+
         return updated;
     }
 
+
+    /**
+     * Updates a field in the user profile if the new value is valid and different from the current value.
+     *
+     * @param newValue      The new value to set in the user profile.
+     * @param currentValue  The current value in the user profile.
+     * @param updateFunction A {@link Consumer} that defines the action to update the field if the condition is met.
+     * @return true if the field was updated; false otherwise.
+     */
+    private boolean updateFieldIfDifferent(String newValue, String currentValue, Consumer<String> updateFunction) {
+        if (isValidField(newValue) && !newValue.equals(currentValue)) {
+            updateFunction.accept(newValue);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Updates a field in the user profile for any type T if the new value is different from the current value.
+     *
+     * @param <T>            The type of the field to be updated.
+     * @param newValue       The new value to set in the user profile.
+     * @param currentValue   The current value in the user profile.
+     * @param updateFunction A {@link Consumer} that defines the action to update the field if the condition is met.
+     * @return true if the field was updated; false otherwise.
+     */
+    private <T> boolean updateFieldIfDifferent(T newValue, T currentValue, Consumer<T> updateFunction) {
+        if (newValue != null && !newValue.equals(currentValue)) {
+            updateFunction.accept(newValue);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Updates the profile picture in the user profile if the provided picture is not null or empty.
+     *
+     * @param profilePicture The new profile picture as a {@link MultipartFile}.
+     * @param userProfile    The user profile to be updated.
+     * @return true if the profile picture was updated; false otherwise.
+     * @throws IOException if an error occurs while uploading the profile picture to S3.
+     */
+    private boolean updateProfilePicture(MultipartFile profilePicture, UserProfile userProfile) throws IOException {
+        if (profilePicture != null && !profilePicture.isEmpty()) {
+            String fileLink = s3Util.uploadFile(profilePicture);
+            userProfile.setProfilePicture(fileLink);
+            return true;
+        }
+        return false;
+    }
 
     /**
      * Checks if the given field is valid.
@@ -123,6 +187,13 @@ public class UserProfileServiceImpl implements UserProfileService {
         return field != null && !field.isEmpty();
     }
 
+    public String deleteProfilePicture(String pictureLink){
+        UUID userId = userUtil.getCurrentUserId();
+        UserProfile profile = userProfileRepository.findByUser_Id(userId).orElseThrow(() -> new ProfileNotFoundException("Profile not found for user: " + userId));
+        profile.setProfilePicture(null);
+        userProfileRepository.save(profile);
+        return s3Util.handleFileDeletion(pictureLink);
+    }
 
     /**
      * Deletes the account of the currently authenticated user.

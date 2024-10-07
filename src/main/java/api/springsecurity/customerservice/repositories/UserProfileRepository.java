@@ -8,9 +8,5 @@ import java.util.UUID;
 
 public interface UserProfileRepository extends JpaRepository<UserProfile, Long> {
 
-    Optional<UserProfile> findByUser_Username(String username);
-
     Optional<UserProfile> findByUser_Id(UUID id);
-
-    UserProfile deleteByUser_Id(UUID id);
 }

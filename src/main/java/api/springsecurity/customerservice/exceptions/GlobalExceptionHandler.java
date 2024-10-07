@@ -11,6 +11,8 @@ import org.springframework.security.authentication.DisabledException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.InvalidPropertiesFormatException;
+
 import static api.springsecurity.customerservice.exceptions.CustomExceptions.*;
 
 @RestControllerAdvice
@@ -37,7 +39,8 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(value = {InvalidTokenPayloadException.class, EmailAlreadyConfirmedException.class,
             InvalidTokenFormatException.class, NoEmailORPhoneNumberException.class, PasswordValidationException.class,
-            JsonProcessException.class, ProfileDataException.class, LoginException.class, BadCredentialsException.class})
+            JsonProcessException.class, ProfileDataException.class, LoginException.class, BadCredentialsException.class,
+            InvalidPropertiesFormatException.class, S3Exception.class, InvalidFileTypeException.class,})
     public ResponseEntity<ErrorResponse> handleInvalidTokenPayloadException(Exception ex) {
         ErrorResponse errorResponse = new ErrorResponse(ex.getMessage());
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
@@ -56,7 +59,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(e.getStatusCode())
                 .body("Twilio error: " + e.getMessage());
     }
-
 
     /**
      * Handles {@link InvalidOTPException}.
