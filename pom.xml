@@ -98,9 +98,9 @@
             <version>0.11.5</version>
         </dependency>
         <dependency>
-            <groupId>com.twilio.sdk</groupId>
-            <artifactId>twilio</artifactId>
-            <version>10.5.0</version>
+            <groupId>org.imgscalr</groupId>
+            <artifactId>imgscalr-lib</artifactId>
+            <version>4.2</version>
         </dependency>
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
