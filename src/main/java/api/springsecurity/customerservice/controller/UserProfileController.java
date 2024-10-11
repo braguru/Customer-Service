@@ -39,4 +39,5 @@ public class UserProfileController {
         ProfileResponse profileResponse = userProfileService.deleteAccount();
         return ResponseEntity.ok(profileResponse);
     }
+
 }
