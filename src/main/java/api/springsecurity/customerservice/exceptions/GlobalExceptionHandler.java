@@ -1,6 +1,7 @@
 package api.springsecurity.customerservice.exceptions;
 
 import api.springsecurity.customerservice.dto.ErrorResponse;
+import com.twilio.exception.ApiException;
 import jakarta.mail.MessagingException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -9,7 +10,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.InvalidPropertiesFormatException;
 
@@ -40,10 +40,24 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(value = {InvalidTokenPayloadException.class, EmailAlreadyConfirmedException.class,
             InvalidTokenFormatException.class, NoEmailORPhoneNumberException.class, PasswordValidationException.class,
             JsonProcessException.class, ProfileDataException.class, LoginException.class, BadCredentialsException.class,
-            InvalidPropertiesFormatException.class, S3Exception.class, InvalidFileTypeException.class, MaxUploadSizeExceededException.class})
+            InvalidPropertiesFormatException.class, S3Exception.class, InvalidFileTypeException.class,})
     public ResponseEntity<ErrorResponse> handleInvalidTokenPayloadException(Exception ex) {
         ErrorResponse errorResponse = new ErrorResponse(ex.getMessage());
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Handles {@link ApiException} exceptions.
+     *
+     * <p>Returns a response entity with the appropriate status code and error message for Twilio-related errors.</p>
+     *
+     * @param e the {@link ApiException} instance
+     * @return a {@link ResponseEntity} with the error message and status code from the exception
+     */
+    @ExceptionHandler(ApiException.class)
+    public ResponseEntity<String> handleApiException(ApiException e) {
+        return ResponseEntity.status(e.getStatusCode())
+                .body("Twilio error: " + e.getMessage());
     }
 
     /**
