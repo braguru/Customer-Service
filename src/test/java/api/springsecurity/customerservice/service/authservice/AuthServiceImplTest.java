@@ -6,7 +6,6 @@ import api.springsecurity.customerservice.entity.User;
 import api.springsecurity.customerservice.entity.UserProfile;
 import api.springsecurity.customerservice.entity.VerificationToken;
 import api.springsecurity.customerservice.entity.enums.Role;
-import api.springsecurity.customerservice.exceptions.CustomExceptions;
 import api.springsecurity.customerservice.exceptions.CustomExceptions.UserAlreadyExistsException;
 import api.springsecurity.customerservice.payload.LoginRequest;
 import api.springsecurity.customerservice.payload.OTPRequest;
@@ -24,6 +23,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.*;
+
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -71,6 +75,7 @@ class AuthServiceImplTest {
     private User user;
     private VerificationToken token;
     private LoginRequest loginRequest;
+
     private OTPRequest otpRequest;
     private RegisterRequest registerRequest;
 
@@ -89,6 +94,7 @@ class AuthServiceImplTest {
         token.setConfirmationToken("sample-token");
         token.setUser(user);
         token.setExpiryDate(LocalDateTime.now().plusMinutes(10)); // valid token
+
 
         otpRequest = new OTPRequest("1234567890", "123456");
         registerRequest = RegisterRequest.builder()
@@ -203,6 +209,7 @@ class AuthServiceImplTest {
     @Test
     void testHandleEmailBasedRegistration_Success() throws Exception {
         // Arrange
+
         registerRequest = new RegisterRequest("john_doe", "john@example.com", "Password123!", null, "USER");
 
         // Mock password encoding
@@ -237,8 +244,8 @@ class AuthServiceImplTest {
 
     @Test
     void testHandleEmailBasedRegistration_PasswordValidationFailure() {
-        registerRequest = new RegisterRequest("john_doe", "john@example.com", "short", null, "USER");
 
+        registerRequest = new RegisterRequest("john_doe", "john@example.com", "short", null, "USER");
         // Act & Assert
         PasswordValidationException exception = assertThrows(
                 PasswordValidationException.class,
@@ -598,5 +605,4 @@ class AuthServiceImplTest {
                 () -> authService.resendEmail(user.getEmail()));
         assertEquals("Failed to send verification email. Please try again.", exception.getMessage());
     }
-
 }
