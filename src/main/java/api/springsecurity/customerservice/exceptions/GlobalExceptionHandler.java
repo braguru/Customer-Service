@@ -1,7 +1,6 @@
 package api.springsecurity.customerservice.exceptions;
 
 import api.springsecurity.customerservice.dto.ErrorResponse;
-import com.twilio.exception.ApiException;
 import jakarta.mail.MessagingException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -44,20 +43,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleInvalidTokenPayloadException(Exception ex) {
         ErrorResponse errorResponse = new ErrorResponse(ex.getMessage());
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
-    }
-
-    /**
-     * Handles {@link ApiException} exceptions.
-     *
-     * <p>Returns a response entity with the appropriate status code and error message for Twilio-related errors.</p>
-     *
-     * @param e the {@link ApiException} instance
-     * @return a {@link ResponseEntity} with the error message and status code from the exception
-     */
-    @ExceptionHandler(ApiException.class)
-    public ResponseEntity<String> handleApiException(ApiException e) {
-        return ResponseEntity.status(e.getStatusCode())
-                .body("Twilio error: " + e.getMessage());
     }
 
     /**
