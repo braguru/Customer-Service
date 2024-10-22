@@ -74,6 +74,7 @@ public class AuthServiceImpl implements AuthService {
                 registerRequest.email(), registerRequest.phone(), registerRequest.username());
 
         if (userRepository.findByUsername(registerRequest.username()).isPresent()) {
+            log.error("User with provided email, username, or phone already exists.");
             throw new UserAlreadyExistsException("User with provided email, username, or phone already exists.");
         }
 

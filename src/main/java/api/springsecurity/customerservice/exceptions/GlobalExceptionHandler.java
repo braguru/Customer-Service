@@ -9,7 +9,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.InvalidPropertiesFormatException;
 
@@ -40,7 +39,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(value = {InvalidTokenPayloadException.class, EmailAlreadyConfirmedException.class,
             InvalidTokenFormatException.class, NoEmailORPhoneNumberException.class, PasswordValidationException.class,
             JsonProcessException.class, ProfileDataException.class, LoginException.class, BadCredentialsException.class,
-            InvalidPropertiesFormatException.class, S3Exception.class, InvalidFileTypeException.class, MaxUploadSizeExceededException.class})
+            InvalidPropertiesFormatException.class, S3Exception.class, InvalidFileTypeException.class,})
     public ResponseEntity<ErrorResponse> handleInvalidTokenPayloadException(Exception ex) {
         ErrorResponse errorResponse = new ErrorResponse(ex.getMessage());
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
