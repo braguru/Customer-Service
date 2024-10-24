@@ -19,26 +19,26 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:21-jdk-alpine
 
 # Create a non-root user and group
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN addgroup -S cs-backend-appgroup && adduser -S cs-backend-appuser -G cs-backend-appgroup
 
 # Set working directory inside the container
 WORKDIR /app
 
 COPY --from=build /app/.env .
 # Copy the built jar file from the build stage
-COPY --from=build /app/target/myapp.jar /app/myapp.jar
+COPY --from=build /app/target/*.jar app.jar
 
 # Change ownership of the /app directory to the non-root user
-RUN chown -R ccp-backend-appuser:ccp-backend-appgroup /app
+RUN chown -R cs-backend-appuser:cs-backend-appgroup /app
 
 # Switch to non-root user
-USER appuser
+USER cs-backend-appuser
 
 # Expose the port the application runs on
 EXPOSE 9090
 
 # Command to run the application
-ENTRYPOINT ["java", "-jar", "/app/myapp.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]
 
 # Security hardening
 # Limit container memory and CPU usage in the Docker run command:
