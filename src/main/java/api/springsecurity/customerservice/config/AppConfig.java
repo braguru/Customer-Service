@@ -4,6 +4,7 @@ import api.springsecurity.customerservice.entity.User;
 import api.springsecurity.customerservice.repositories.UserRepository;
 import api.springsecurity.customerservice.utils.userutil.OTPAuthenticationProvider;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -29,6 +30,15 @@ import java.util.UUID;
 @Configuration
 @RequiredArgsConstructor
 public class AppConfig {
+
+    @Value("${AWS_ACCESS_KEY_ID}")
+    private String accessKey;
+
+    @Value("${AWS_SECRET_ACCESS_KEY}")
+    private String secretKey;
+
+    @Value("${S3_REGION}")
+    private String region;
 
     private final UserRepository userRepository;
     private final OTPAuthenticationProvider otpAuthenticationProvider;
@@ -119,12 +129,12 @@ public class AppConfig {
     @Bean
     public S3Client s3(){
         AwsBasicCredentials awsBasicCredentials = AwsBasicCredentials.create(
-                System.getenv("AWS_ACCESS_KEY_ID"),
-                System.getenv("AWS_SECRET_ACCESS_KEY")
+                accessKey,
+                secretKey
                 );
 
         return S3Client.builder()
-                .region(Region.of(System.getenv("S3_REGION")))
+                .region(Region.of(region))
                 .credentialsProvider(StaticCredentialsProvider.create(awsBasicCredentials))
                 .build();
     }
@@ -132,7 +142,7 @@ public class AppConfig {
     @Bean
     public S3AsyncClient s3AsyncClient() {
         return S3AsyncClient.builder()
-                .region(Region.of(System.getenv("S3_REGION")))
+                .region(Region.of(region))
                 .credentialsProvider(DefaultCredentialsProvider.create())
                 .build();
     }

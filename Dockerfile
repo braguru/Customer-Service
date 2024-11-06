@@ -10,7 +10,7 @@ RUN mvn dependency:go-offline
 
 # Copy the entire source code
 COPY src ./src
-COPY .env .
+#COPY .env .
 
 # Build the application
 RUN mvn clean package -DskipTests
@@ -24,7 +24,7 @@ RUN addgroup -S cs-backend-appgroup && adduser -S cs-backend-appuser -G cs-backe
 # Set working directory inside the container
 WORKDIR /app
 
-COPY --from=build /app/.env .
+#COPY --from=build /app/.env .
 # Copy the built jar file from the build stage
 COPY --from=build /app/target/*.jar app.jar
 
