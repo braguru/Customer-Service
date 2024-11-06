@@ -1,7 +1,7 @@
 package api.springsecurity.customerservice.config;
 
 import api.springsecurity.customerservice.utils.userutil.OTPAuthenticationProvider;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -9,6 +9,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -19,13 +20,22 @@ import java.util.Arrays;
 import java.util.List;
 
 @EnableWebSecurity
-@RequiredArgsConstructor
 @Configuration
 public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
     private final AuthenticationProvider authenticationProvider;
     private final OTPAuthenticationProvider otpAuthenticationProvider;
+    @Qualifier("customAuthenticationEntryPoint")
+    private final AuthenticationEntryPoint authenticationEntryPoint;
+
+    public SecurityConfig(JwtFilter jwtFilter, AuthenticationProvider authenticationProvider, OTPAuthenticationProvider otpAuthenticationProvider, AuthenticationEntryPoint authenticationEntryPoint) {
+        this.jwtFilter = jwtFilter;
+        this.authenticationProvider = authenticationProvider;
+        this.otpAuthenticationProvider = otpAuthenticationProvider;
+        this.authenticationEntryPoint = authenticationEntryPoint;
+    }
+
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -37,6 +47,7 @@ public class SecurityConfig {
                         .anyRequest().authenticated())
                 .sessionManagement(sessionManagement -> sessionManagement
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(entry -> entry.authenticationEntryPoint(authenticationEntryPoint))
                 .authenticationProvider(authenticationProvider)
                 .authenticationProvider(otpAuthenticationProvider)
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
