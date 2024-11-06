@@ -1,15 +1,18 @@
 package api.springsecurity.customerservice.exceptions;
 
 import api.springsecurity.customerservice.dto.ErrorResponse;
+import io.jsonwebtoken.MalformedJwtException;
 import jakarta.mail.MessagingException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.security.SignatureException;
 import java.util.InvalidPropertiesFormatException;
 
 import static api.springsecurity.customerservice.exceptions.CustomExceptions.*;
@@ -37,27 +40,14 @@ public class GlobalExceptionHandler {
      *         HTTP status code 400 Bad Request
      */
     @ExceptionHandler(value = {InvalidTokenPayloadException.class, EmailAlreadyConfirmedException.class,
-            InvalidTokenFormatException.class, NoEmailORPhoneNumberException.class, PasswordValidationException.class,
-            JsonProcessException.class, ProfileDataException.class, LoginException.class, BadCredentialsException.class,
+            NoEmailORPhoneNumberException.class, PasswordValidationException.class,
+            JsonProcessException.class, ProfileDataException.class, LoginException.class,
             InvalidPropertiesFormatException.class, S3Exception.class, InvalidFileTypeException.class,})
     public ResponseEntity<ErrorResponse> handleInvalidTokenPayloadException(Exception ex) {
         ErrorResponse errorResponse = new ErrorResponse(ex.getMessage());
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
-    /**
-     * Handles {@link InvalidOTPException}.
-     *
-     * <p>Returns a response entity with the UNAUTHORIZED status and a detailed error response for invalid OTP scenarios.</p>
-     *
-     * @param ex the {@link InvalidOTPException} instance
-     * @return a {@link ResponseEntity} with an {@link ErrorResponse} and UNAUTHORIZED status
-     */
-    @ExceptionHandler(value = {InvalidOTPException.class, TokenExpiredException.class})
-    public ResponseEntity<ErrorResponse> handleUnauthorizedException(Exception ex) {
-        ErrorResponse errorResponse = new ErrorResponse(ex.getMessage());
-        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
-    }
 
     @ExceptionHandler(value = {UserProfileNotFoundException.class, UsernameOrEmailOrPhoneNotException.class,
             UserNotFoundException.class, EmailNotFoundException.class, TokenNotFoundException.class,
@@ -92,5 +82,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleMessagingException(Exception ex) {
         ErrorResponse errorResponse = new ErrorResponse(ex.getMessage());
         return new ResponseEntity<>(errorResponse, HttpStatus.SERVICE_UNAVAILABLE);
+    }
+
+    @ExceptionHandler(value = {MalformedJwtException.class, SignatureException.class, InsufficientAuthenticationException.class,
+            BadCredentialsException.class, InvalidOTPException.class, TokenExpiredException.class, InvalidTokenFormatException.class})
+    public ResponseEntity<ErrorResponse> handleSecurityException(Exception ex) {
+        ErrorResponse errorResponse = new ErrorResponse(ex.getMessage());
+        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
     }
 }
