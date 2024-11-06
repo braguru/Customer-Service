@@ -22,7 +22,6 @@ import java.security.SignatureException;
  * It is used to handle Authentication Failures (When a user is not authenticated).
  */
 @Component("customAuthenticationEntryPoint")
-//@RequiredArgsConstructor
 public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
     @Qualifier("handlerExceptionResolver")
