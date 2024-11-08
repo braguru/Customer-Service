@@ -31,6 +31,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import static api.springsecurity.customerservice.exceptions.CustomExceptions.*;
+import static api.springsecurity.customerservice.service.authservice.AuthServiceImplV1.getRegisterResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -201,20 +202,7 @@ public class AuthServiceImpl implements AuthService {
                 .user(user)
                 .build());
 
-        try {
-            String response = otpService.sendOtp(user);
-            log.info(response);
-            return RegisterResponse.builder()
-                    .id(String.valueOf(user.getId()))
-                    .username(user.getUsername())
-                    .email(user.getEmail())
-                    .phone(user.getPhone())
-                    .message(response)
-                    .build();
-        }catch (OtpNotSentException ex) {
-            log.error("Failed to send OTP for user {}. Reason: {}", user.getPhone(), ex.getMessage());
-            throw new OtpNotSentException("Registration successful but OTP not sent. Please try again.");
-        }
+        return getRegisterResponse(user, otpService, log);
     }
 
 
