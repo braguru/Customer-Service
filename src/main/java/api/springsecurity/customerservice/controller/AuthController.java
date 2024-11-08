@@ -8,17 +8,23 @@ import api.springsecurity.customerservice.payload.RegisterRequest;
 import api.springsecurity.customerservice.service.authservice.AuthService;
 import api.springsecurity.customerservice.service.otpservice.OTPService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("api/v1/auth")
-@RequiredArgsConstructor
 public class AuthController {
 
+
+    @Qualifier("authServiceImpl")
     private final AuthService authService;
     private final OTPService otpService;
+
+    public AuthController(@Qualifier("authServiceImpl") AuthService authService, OTPService otpService) {
+        this.authService = authService;
+        this.otpService = otpService;
+    }
 
     @PostMapping("/signup")
     public ResponseEntity<RegisterResponse> signup(@Valid @RequestBody RegisterRequest request) {

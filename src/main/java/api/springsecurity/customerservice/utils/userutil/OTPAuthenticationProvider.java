@@ -1,6 +1,5 @@
 package api.springsecurity.customerservice.utils.userutil;
 
-import api.springsecurity.customerservice.dto.RegisterResponse;
 import api.springsecurity.customerservice.payload.OTPRequest;
 import api.springsecurity.customerservice.repositories.UserRepository;
 import api.springsecurity.customerservice.service.otpservice.OTPService;
@@ -36,10 +35,7 @@ public class OTPAuthenticationProvider implements AuthenticationProvider {
         String otp = (String) authentication.getCredentials();
 
         OTPRequest otpRequest = new OTPRequest(phone, otp);
-        RegisterResponse otpResponse = otpService.verifyOTP(otpRequest);
-        if (!"OK".equals(otpResponse.getMessage())) {
-            throw new BadCredentialsException("Invalid OTP");
-        }
+        otpService.verifyOTP(otpRequest);
 
         UserDetails user = userRepository.findByPhone(phone)
                 .orElseThrow(() -> new BadCredentialsException("Invalid phone number"));
