@@ -5,6 +5,8 @@ import api.springsecurity.customerservice.dto.RegisterResponse;
 import api.springsecurity.customerservice.entity.User;
 import api.springsecurity.customerservice.payload.OTPRequest;
 import api.springsecurity.customerservice.repositories.UserRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -71,19 +73,34 @@ public class OTPService {
      * @throws InvalidTokenFormatException if there is an error during the OTP verification process.
      */
     public RegisterResponse verifyOTP(OTPRequest otpRequest) {
-        Map<String, String> requestBody = new HashMap<>();
+        Map<String, String> requestBody = new LinkedHashMap<>();
         requestBody.put("code", otpRequest.code());
         requestBody.put("number", otpRequest.number());
 
         RequestBody jsonRequestBody = buildJsonRequestBody(requestBody);
         Request request = new Request.Builder()
                 .url(otpConfig.getVerifyOtpUrl())
-                .addHeader("Content-Type", "application/json")
                 .addHeader("api-key", otpConfig.getApiKey())
                 .post(jsonRequestBody)
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
+            assert response.body() != null;
+            String responseBody = response.body().string();
+
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode jsonNode = objectMapper.readTree(responseBody);
+
+            // Extract "message" field from the JSON
+            String message = jsonNode.has("message") ? jsonNode.get("message").asText() : "No message provided";
+
+            if(message.equals("Invalid phone number")){
+                throw new InvalidOTPException("Invalid phone number");
+            }
+
+            if(message.equals("Code has expired")){
+                throw new InvalidOTPException("Code has expired");
+            }
 
             if (!response.isSuccessful()) {
                 throw new InvalidOTPException("Invalid OTP. Please try again.");
@@ -93,12 +110,13 @@ public class OTPService {
             user.ifPresent(this::enableUserIfDisabled);
 
             return RegisterResponse.builder()
-                    .message(response.message())
+                    .message("OTP verified successfully and account enabled. You can now log in.")
                     .build();
         } catch (IOException e) {
             throw new InvalidTokenFormatException("Failed to verify OTP due to an exception: " + e.getMessage());
         }
     }
+
 
     /**
      * Retries an HTTP request up to a specified number of times if it fails.
@@ -167,8 +185,8 @@ public class OTPService {
      */
     private RequestBody buildJsonRequestBody(Map<String, String> requestBody) {
         return RequestBody.create(
-                gson.toJson(requestBody),
-                MediaType.get("application/json; charset=utf-8")
+                MediaType.parse("application/json; charset=utf-8"),
+                gson.toJson(requestBody)
         );
     }
 
