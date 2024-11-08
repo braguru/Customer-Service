@@ -17,21 +17,19 @@ import org.springframework.web.bind.annotation.*;
 //@RequiredArgsConstructor
 public class AuthController {
 
-    @Qualifier("authServiceImplV1")
-    private final AuthService authServicev1;
+
     @Qualifier("authServiceImpl")
     private final AuthService authService;
     private final OTPService otpService;
 
-    public AuthController(@Qualifier("authServiceImplV1") AuthService authServicev1, @Qualifier("authServiceImpl") AuthService authService, OTPService otpService) {
-        this.authServicev1 = authServicev1;
+    public AuthController(@Qualifier("authServiceImpl") AuthService authService, OTPService otpService) {
         this.authService = authService;
         this.otpService = otpService;
     }
 
     @PostMapping("/signup")
     public ResponseEntity<RegisterResponse> signup(@Valid @RequestBody RegisterRequest request) {
-        RegisterResponse response = authServicev1.registerUser(request);
+        RegisterResponse response = authService.registerUser(request);
         return ResponseEntity.ok(response);
     }
 
@@ -48,7 +46,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
-        LoginResponse response = authServicev1.loginUser(loginRequest);
+        LoginResponse response = authService.loginUser(loginRequest);
         return ResponseEntity.ok(response);
     }
 
