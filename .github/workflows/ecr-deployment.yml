@@ -1,61 +1,40 @@
-name: Build and Push Docker Image to ECR
-
+---
+name: Build and Push Golang Image to AWS ECR
 on:
-  pull_request:
-    branches:
-      - main
   push:
-    branches:
-      - main
-
-permissions:
-  contents: read
-
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 jobs:
   build-and-push:
+    name: Build and Push to ECR
     runs-on: ubuntu-latest
-
-    env:
-      AWS_REGION: ${{ secrets.AWS_REGION }}
-      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-      ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v2
 
-      - name: Set up AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-west-2
 
-      - name: Log in to Amazon ECR
+      - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Delete existing image from ECR (only on main)
-        if: github.ref == 'refs/heads/main'
-        env:
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+      - name: Automatic Tagging of Releases
+        id: increment-git-tag
         run: |
-          IMAGE_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest"
-          aws ecr batch-delete-image --repository-name $ECR_REPOSITORY --image-ids imageTag=latest || echo "Image does not exist"
+          bash ./build/git_update.sh -v major
 
-      - name: Build Docker image
+      - name: Build, Tag, and Push the Image to Amazon ECR
         id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: lesson-086
+          IMAGE_TAG: ${{ steps.increment-git-tag.outputs.git-tag }}
         run: |
-          docker build -t ${{ secrets.ECR_REPOSITORY }} .
-
-      - name: Tag Docker image
-        run: |
-          IMAGE_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}"
-          docker tag ${{ secrets.ECR_REPOSITORY }}:latest $IMAGE_URI:latest
-
-      - name: Push Docker image to ECR (only on main)
-        if: github.ref == 'refs/heads/main'
-        run: |
-          IMAGE_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}"
-          docker push $IMAGE_URI:latest
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
