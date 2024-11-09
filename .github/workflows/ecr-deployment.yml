@@ -31,6 +31,12 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      - name: Install Docker Compose
+        run: |
+          curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | jq -r .tag_name)/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          chmod +x /usr/local/bin/docker-compose
+          docker-compose --version
+
       - name: Log in to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
@@ -63,10 +69,10 @@ jobs:
           IMAGE_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest"
           aws ecr batch-delete-image --repository-name $ECR_REPOSITORY --image-ids imageTag=latest || echo "Image does not exist"
 
-      - name: Build Docker image
-        id: build-image
-        run: |
-          docker build -t ${{ secrets.ECR_REPOSITORY }} .
+#      - name: Build Docker image
+#        id: build-image
+#        run: |
+#          docker build -t ${{ secrets.ECR_REPOSITORY }} .
 
       - name: Tag Docker image
         run: |
