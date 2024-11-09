@@ -19,6 +19,8 @@ jobs:
       AWS_REGION: ${{ secrets.AWS_REGION }}
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
       ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+      ECR_REPOSITORY_DB: ${{ secrets.ECR_REPOSITORY_DB }}
+      IMAGE_TAG: latest
 
     steps:
       - name: Checkout repository
@@ -52,13 +54,17 @@ jobs:
       - name: Build images with docker-compose
         run: docker-compose -f docker-compose.yml build
 
+        # List Docker images to verify build
+      - name: List Docker images
+        run: docker images
+
           # Conditionally push PostgreSQL image if it doesn't exist
       - name: Push PostgreSQL image to ECR if missing
         if: steps.check-postgres.outcome == 'failure'
         run: |
-           POSTGRES_IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY_DB}:latest"
-           docker tag my_project_db:latest $POSTGRES_IMAGE_URI
-           docker push $POSTGRES_IMAGE_URI
+          DB_IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY_DB}:${IMAGE_TAG}"
+          docker tag postgres:15-alpine $DB_IMAGE_URI
+          docker push $DB_IMAGE_URI
 
       - name: Delete existing image from ECR (only on main)
         if: github.ref == 'refs/heads/main'
@@ -66,8 +72,9 @@ jobs:
           AWS_REGION: ${{ secrets.AWS_REGION }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
-          IMAGE_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest"
-          aws ecr batch-delete-image --repository-name $ECR_REPOSITORY --image-ids imageTag=latest || echo "Image does not exist"
+          run: |
+          APP_IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY_APP}:${IMAGE_TAG}"
+          aws ecr batch-delete-image --repository-name $ECR_REPOSITORY_APP --image-ids imageTag=$IMAGE_TAG || echo "No existing application image found to delete"
 
 #      - name: Build Docker image
 #        id: build-image
@@ -76,11 +83,11 @@ jobs:
 
       - name: Tag Docker image
         run: |
-          IMAGE_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}"
-          docker tag ${{ secrets.ECR_REPOSITORY }}:latest $IMAGE_URI:latest
+          APP_IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY_APP}:${IMAGE_TAG}"
+          docker tag cs_backend_app:latest $APP_IMAGE_URI
 
       - name: Push Docker image to ECR (only on main)
         if: github.ref == 'refs/heads/main'
         run: |
-          IMAGE_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}"
-          docker push $IMAGE_URI:latest
+          APP_IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY_APP}:${IMAGE_TAG}"
+          docker push $APP_IMAGE_URI
