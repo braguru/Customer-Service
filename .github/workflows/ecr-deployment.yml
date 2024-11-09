@@ -35,6 +35,25 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
+        # Check if PostgreSQL image exists
+      - name: Check for existing PostgreSQL image in ECR
+        id: check-postgres
+        run: |
+         aws ecr describe-images --repository-name $ECR_REPOSITORY_DB --image-ids imageTag=latest || echo "No PostgreSQL image found in ECR"
+        continue-on-error: true
+
+        # Build images using docker-compose
+      - name: Build images with docker-compose
+        run: docker-compose -f docker-compose.yml build
+
+          # Conditionally push PostgreSQL image if it doesn't exist
+      - name: Push PostgreSQL image to ECR if missing
+        if: steps.check-postgres.outcome == 'failure'
+        run: |
+           POSTGRES_IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY_DB}:latest"
+           docker tag my_project_db:latest $POSTGRES_IMAGE_URI
+           docker push $POSTGRES_IMAGE_URI
+
       - name: Delete existing image from ECR (only on main)
         if: github.ref == 'refs/heads/main'
         env:
