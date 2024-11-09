@@ -29,8 +29,8 @@ public class UserProfileController {
     }
 
     @DeleteMapping("/picture")
-    public ResponseEntity<String> deleteProfilePicture(@RequestParam String pictureLink) {
-        String response = userProfileService.deleteProfilePicture(pictureLink);
+    public ResponseEntity<String> deleteProfilePicture() {
+        String response = userProfileService.deleteProfilePicture();
         return ResponseEntity.ok(response);
     }
 

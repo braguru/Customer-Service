@@ -9,6 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -42,12 +44,26 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(value = {InvalidTokenPayloadException.class, EmailAlreadyConfirmedException.class,
             NoEmailORPhoneNumberException.class, PasswordValidationException.class,
             JsonProcessException.class, ProfileDataException.class, LoginException.class,
-            InvalidPropertiesFormatException.class, S3Exception.class, InvalidFileTypeException.class,})
+            InvalidPropertiesFormatException.class, S3Exception.class, InvalidFileTypeException.class})
     public ResponseEntity<ErrorResponse> handleInvalidTokenPayloadException(Exception ex) {
         ErrorResponse errorResponse = new ErrorResponse(ex.getMessage());
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
+        StringBuilder errorMessage = new StringBuilder("Validation failed: ");
+        for (FieldError error : ex.getBindingResult().getFieldErrors()) {
+            errorMessage.append(error.getField())
+                    .append(" - ")
+                    .append(error.getDefaultMessage())
+                    .append("; ");
+        }
+
+        ErrorResponse errorResponse = new ErrorResponse("Invalid file type. Only images are allowed.");
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
 
     @ExceptionHandler(value = {UserProfileNotFoundException.class, UsernameOrEmailOrPhoneNotException.class,
             UserNotFoundException.class, EmailNotFoundException.class, TokenNotFoundException.class,
