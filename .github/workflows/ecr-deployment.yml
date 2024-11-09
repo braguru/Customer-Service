@@ -73,8 +73,8 @@ jobs:
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
           run: |
-          APP_IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY_APP}:${IMAGE_TAG}"
-          aws ecr batch-delete-image --repository-name $ECR_REPOSITORY_APP --image-ids imageTag=$IMAGE_TAG || echo "No existing application image found to delete"
+          APP_IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}"
+          aws ecr batch-delete-image --repository-name $ECR_REPOSITORY --image-ids imageTag=$IMAGE_TAG || echo "No existing application image found to delete"
 
 #      - name: Build Docker image
 #        id: build-image
@@ -83,11 +83,11 @@ jobs:
 
       - name: Tag Docker image
         run: |
-          APP_IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY_APP}:${IMAGE_TAG}"
+          APP_IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}"
           docker tag cs_backend_app:latest $APP_IMAGE_URI
 
       - name: Push Docker image to ECR (only on main)
         if: github.ref == 'refs/heads/main'
         run: |
-          APP_IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY_APP}:${IMAGE_TAG}"
+          APP_IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}"
           docker push $APP_IMAGE_URI
