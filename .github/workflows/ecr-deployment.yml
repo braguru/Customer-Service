@@ -19,12 +19,7 @@ jobs:
       AWS_REGION: ${{ secrets.AWS_REGION }}
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
       ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
-      ECR_REPOSITORY_DB: ${{ secrets.ECR_REPOSITORY_DB }}
       IMAGE_TAG: latest
-      DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
-      DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
-      DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
     steps:
       - name: Checkout repository
@@ -37,58 +32,25 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Install Docker Compose
-        run: |
-          curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | jq -r .tag_name)/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-          chmod +x /usr/local/bin/docker-compose
-          docker-compose --version
-
       - name: Log in to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-        # Check if PostgreSQL image exists
-      - name: Check for existing PostgreSQL image in ECR
-        id: check-postgres
-        run: |
-         aws ecr describe-images --repository-name $ECR_REPOSITORY_DB --image-ids imageTag=latest || echo "No PostgreSQL image found in ECR"
-        continue-on-error: true
-
-        # Build images using docker-compose
-      - name: Build images with docker-compose
-        run: docker-compose -f docker-compose.yml build
-
-        # List Docker images to verify build
-      - name: List Docker images
-        run: docker images
-
-          # Conditionally push PostgreSQL image if it doesn't exist
-      - name: Push PostgreSQL image to ECR if missing
-        if: steps.check-postgres.outcome == 'failure'
-        run: |
-          DB_IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY_DB}:${IMAGE_TAG}"
-          docker tag postgres:15-alpine $DB_IMAGE_URI
-          docker push $DB_IMAGE_URI
-
       - name: Delete existing image from ECR (only on main)
         if: github.ref == 'refs/heads/main'
-        env:
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
-          run: |
           APP_IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}"
           aws ecr batch-delete-image --repository-name $ECR_REPOSITORY --image-ids imageTag=$IMAGE_TAG || echo "No existing application image found to delete"
 
-#      - name: Build Docker image
-#        id: build-image
-#        run: |
-#          docker build -t ${{ secrets.ECR_REPOSITORY }} .
+      - name: Build Docker image
+        id: build-image
+        run: |
+          docker build -t $ECR_REPOSITORY .
 
       - name: Tag Docker image
         run: |
           APP_IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}"
-          docker tag cs_backend_app:latest $APP_IMAGE_URI
+          docker tag $ECR_REPOSITORY:latest $APP_IMAGE_URI
 
       - name: Push Docker image to ECR (only on main)
         if: github.ref == 'refs/heads/main'
