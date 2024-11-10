@@ -18,7 +18,7 @@ import io.swagger.v3.oas.annotations.servers.Server;
                 url = "http://localhost:9090",
                 description = "Local server")
                 ,@Server(
-                url = "",
+                url = "http://18.170.33.214:9090/",
                 description = "Production server")
         },
         security = {
