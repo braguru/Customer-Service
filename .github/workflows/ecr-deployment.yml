@@ -75,8 +75,8 @@ jobs:
             docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
                     
 #            Stop and remove any existing application container
-            docker stop my-container || true
-            docker rm my-container || true
+            docker stop cs_backend_app || true
+            docker rm cs_backend_app || true
             
 #             Ensure the Docker network exists
             docker network create cs_app_network || true
@@ -84,6 +84,6 @@ jobs:
 #             Run the application container on the specified network
             docker run -d --name cs_backend_app \
               --network cs_app_network \
-              -e DATABASE_URL=postgresql://postgres:admin@postgres:5432/customerdb \
+              --env-file cs_backend/.env \
               -p 9090:9090 \
               ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
