@@ -70,18 +70,18 @@ jobs:
           script: |
             #!/bin/bash
 
-#            Authenticate to ECR and pull the latest image
+            # Authenticate to ECR and pull the latest image
             aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
             docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
                     
-#            Stop and remove any existing application container
+            # Stop and remove any existing application container
             docker stop my-container || true
             docker rm my-container || true
             
-#             Ensure the Docker network exists
+            # Ensure the Docker network exists
             docker network create cs_app_network || true
             
-#             Run the application container on the specified network
+            # Run the application container on the specified network
             docker run -d --name cs_backend_app \
               --network cs_app_network \
               -e DATABASE_URL=postgresql://postgres:admin@postgres:5432/customerdb \
