@@ -44,15 +44,19 @@ public class AuthServiceImplV1 implements AuthService {
     @Override
     public RegisterResponse registerUser(RegisterRequest registerRequest) {
         log.info("Registering user with email: {}, phone: {}, username: {}",
-                registerRequest.email(), registerRequest.phone(), registerRequest.username());
+                registerRequest.email(), registerRequest.phone(), registerRequest.firstname());
 
-        if(registerRequest.username() == null || registerRequest.username().isEmpty() ||
-                registerRequest.phone() == null || registerRequest.phone().isEmpty()) {
+        if(registerRequest.firstname() == null || registerRequest.firstname().isEmpty() ||
+                registerRequest.phone() == null || registerRequest.phone().isEmpty() ||
+                registerRequest.email() == null || registerRequest.email().isEmpty() ||
+                registerRequest.lastname() == null || registerRequest.lastname().isEmpty()){
             log.error("Username and Phone number should be provided.");
             throw new NoEmailORPhoneNumberException("Username and Phone number should be provided.");
         }
 
-        if(userRepository.findByUsername(registerRequest.username()).isPresent()){
+        String username = registerRequest.firstname() + " " + registerRequest.lastname();
+
+        if(userRepository.findByUsername(username).isPresent()){
             log.error("User with provided username already exists.");
             throw new UserAlreadyExistsException("User with provided username already exists.");
         }
@@ -71,10 +75,11 @@ public class AuthServiceImplV1 implements AuthService {
     }
 
     private RegisterResponse handleRegistration(RegisterRequest registerRequest) {
-//        if(PasswordUtil.encodePassword(registerRequest.password())){
         try {
             User user = User.builder()
-                    .username(registerRequest.username())
+                    .firstname(registerRequest.firstname())
+                    .lastname(registerRequest.lastname())
+//                    .username(registerRequest.firstname() + " " + registerRequest.lastname())
                     .email(registerRequest.email())
                     .date(LocalDate.now())
                     .role(Role.valueOf(registerRequest.role()))
@@ -100,7 +105,8 @@ public class AuthServiceImplV1 implements AuthService {
             log.info(response);
             return RegisterResponse.builder()
                     .id(String.valueOf(user.getId()))
-                    .username(user.getUsername())
+                    .firstname(user.getFirstname())
+                    .lastname(user.getLastname())
                     .email(user.getEmail())
                     .phone(user.getPhone())
                     .message(response)
@@ -139,8 +145,8 @@ public class AuthServiceImplV1 implements AuthService {
     }
 
     @Override
-    public String resendOTP(OTPRequest otpRequest) {
-        return "";
+    public LoginResponse resendOTP(OTPRequest otpRequest) {
+        return null;
     }
 
     @Override
