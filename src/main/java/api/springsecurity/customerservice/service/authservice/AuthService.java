@@ -16,7 +16,7 @@ public interface AuthService {
 
     LoginResponse authenticateWithPhoneAndOtp(OTPRequest otpRequest);
 
-    String resendOTP(OTPRequest otpRequest);
+    LoginResponse resendOTP(OTPRequest otpRequest);
 
     void resendEmail(String email);
 }

@@ -27,10 +27,10 @@ public class AuthController {
     }
 
 //    @PostMapping("/signup")
-//    public ResponseEntity<RegisterResponse> signup(@Valid @RequestBody RegisterRequest request) {
-//        RegisterResponse response = authService.registerUser(request);
-//        return ResponseEntity.ok(response);
-//    }
+    public ResponseEntity<RegisterResponse> signup(@Valid @RequestBody RegisterRequest request) {
+        RegisterResponse response = authService.registerUser(request);
+        return ResponseEntity.ok(response);
+    }
 
     @GetMapping("verify-email")
     public String emailVerification(@RequestParam String token){
@@ -44,20 +44,20 @@ public class AuthController {
     }
 
 //    @PostMapping("/login")
-//    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
-//        LoginResponse response = authService.loginUser(loginRequest);
-//        return ResponseEntity.ok(response);
-//    }
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
+        LoginResponse response = authService.loginUser(loginRequest);
+        return ResponseEntity.ok(response);
+    }
 
 //    @PostMapping("/login/phone")
-//    public ResponseEntity<LoginResponse> authenticateWithPhoneAndOtp(@Valid @RequestBody OTPRequest request){
-//        LoginResponse response = authService.authenticateWithPhoneAndOtp(request);
-//        return ResponseEntity.ok(response);
-//    }
+    public ResponseEntity<LoginResponse> authenticateWithPhoneAndOtp(@Valid @RequestBody OTPRequest request){
+        LoginResponse response = authService.authenticateWithPhoneAndOtp(request);
+        return ResponseEntity.ok(response);
+    }
 
     @PostMapping("/resend-otp")
-    public ResponseEntity<String> resendOtp(@RequestBody OTPRequest otpRequest){
-        String response = authService.resendOTP(otpRequest);
+    public ResponseEntity<LoginResponse> resendOtp(@RequestBody OTPRequest otpRequest){
+        LoginResponse response = authService.resendOTP(otpRequest);
         return ResponseEntity.ok(response);
     }
 
