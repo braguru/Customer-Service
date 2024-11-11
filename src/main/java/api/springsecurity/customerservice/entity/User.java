@@ -28,6 +28,8 @@ public class User implements UserDetails {
     @UuidGenerator
     private UUID id;
     @Column(unique = true)
+    private String firstname;
+    private String lastname;
     private String username;
     private String password;
     @Email
@@ -45,6 +47,17 @@ public class User implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority(role.name()));
+    }
+
+    @Override
+    public String getUsername() {
+        return this.firstname + " " + this.lastname;
+    }
+
+    @PrePersist
+    @PreUpdate
+    public void setUsername() {
+        this.username = this.firstname + " " + this.lastname;
     }
 
     @Override

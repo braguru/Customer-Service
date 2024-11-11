@@ -10,6 +10,8 @@ import lombok.Getter;
 public class RegisterResponse {
     private String id;
     private String email;
+    private String firstname;
+    private String lastname;
     private String username;
     private String phone;
     private String role;
