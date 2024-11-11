@@ -14,5 +14,6 @@ public class RegisterResponse {
     private String phone;
     private String role;
     private String message;
+    private String token;
     private int statusCode;
 }
