@@ -10,7 +10,8 @@ import java.time.LocalDate;
 @Builder
 @Getter
 public class ProfileRequest {
-    private String username;
+    private String firstName;
+    private String lastName;
     private String email;
     private String phoneNumber;
     private MultipartFile profilePicture;

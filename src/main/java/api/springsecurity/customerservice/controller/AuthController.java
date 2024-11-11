@@ -26,7 +26,7 @@ public class AuthController {
         this.otpService = otpService;
     }
 
-    @PostMapping("/signup")
+//    @PostMapping("/signup")
     public ResponseEntity<RegisterResponse> signup(@Valid @RequestBody RegisterRequest request) {
         RegisterResponse response = authService.registerUser(request);
         return ResponseEntity.ok(response);
@@ -43,21 +43,21 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/login")
+//    @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
         LoginResponse response = authService.loginUser(loginRequest);
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/login/phone")
+//    @PostMapping("/login/phone")
     public ResponseEntity<LoginResponse> authenticateWithPhoneAndOtp(@Valid @RequestBody OTPRequest request){
         LoginResponse response = authService.authenticateWithPhoneAndOtp(request);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/resend-otp")
-    public ResponseEntity<String> resendOtp(@RequestBody OTPRequest otpRequest){
-        String response = authService.resendOTP(otpRequest);
+    public ResponseEntity<LoginResponse> resendOtp(@RequestBody OTPRequest otpRequest){
+        LoginResponse response = authService.resendOTP(otpRequest);
         return ResponseEntity.ok(response);
     }
 

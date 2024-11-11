@@ -48,6 +48,8 @@ public class UserProfileServiceImpl implements UserProfileService {
             UserProfile userProfile = profile.get();
             return ProfileResponse.builder()
                     .id(userProfile.getId())
+                    .firstname(userProfile.getUser().getFirstname())
+                    .lastname(userProfile.getUser().getLastname())
                     .username(userProfile.getUser().getUsername())
                     .email(userProfile.getUser().getEmail())
                     .profilePicture(userProfile.getProfilePicture())
@@ -102,8 +104,11 @@ public class UserProfileServiceImpl implements UserProfileService {
     private boolean updateUserProfileFields(ProfileRequest request, UserProfile userProfile) throws IOException {
         boolean updated = false;
 
-        updated |= updateFieldIfDifferent(request.getUsername(), userProfile.getUser().getUsername(),
-                userProfile.getUser()::setUsername);
+        updated |= updateFieldIfDifferent(request.getFirstName(), userProfile.getUser().getFirstname(),
+                userProfile.getUser()::setFirstname);
+
+        updated |= updateFieldIfDifferent(request.getLastName(), userProfile.getUser().getLastname(),
+                userProfile.getUser()::setLastname);
 
         updated |= updateFieldIfDifferent(request.getEmail(), userProfile.getUser().getEmail(),
                 userProfile.getUser()::setEmail);
@@ -187,6 +192,16 @@ public class UserProfileServiceImpl implements UserProfileService {
         return field != null && !field.isEmpty();
     }
 
+    /**
+     * Deletes the profile picture of the current user.
+     *
+     * <p>This method retrieves the ID of the currently authenticated user and deletes their profile picture.
+     * If the user is not found, a {@link ProfileNotFoundException} is thrown. The method then deletes the profile picture
+     * from the user's profile and returns a message indicating the success of the operation.</p>
+     *
+     * @return a message indicating the success of the operation
+     * @throws ProfileNotFoundException if no profile is found for the current user
+     */
     public String deleteProfilePicture(){
         UUID userId = userUtil.getCurrentUserId();
         UserProfile profile = userProfileRepository.findByUser_Id(userId).orElseThrow(() -> new ProfileNotFoundException("Profile not found for user: " + userId));

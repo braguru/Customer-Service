@@ -5,6 +5,7 @@ import api.springsecurity.customerservice.dto.RegisterResponse;
 import api.springsecurity.customerservice.entity.User;
 import api.springsecurity.customerservice.payload.OTPRequest;
 import api.springsecurity.customerservice.repositories.UserRepository;
+import api.springsecurity.customerservice.utils.jwtutil.JwtUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
@@ -23,9 +24,11 @@ import static api.springsecurity.customerservice.exceptions.CustomExceptions.*;
 @Slf4j
 public class OTPService {
 
+    public static final String MESSAGE = "message";
     private final UserRepository userRepository;
     private final OkHttpClient client = new OkHttpClient();
     private final OTPConfigurationProperties otpConfig;  // Externalized configuration
+    private final JwtUtil jwtUtil;
 
     private static final Gson gson = new Gson();
 
@@ -92,7 +95,7 @@ public class OTPService {
             JsonNode jsonNode = objectMapper.readTree(responseBody);
 
             // Extract "message" field from the JSON
-            String message = jsonNode.has("message") ? jsonNode.get("message").asText() : "No message provided";
+            String message = jsonNode.has(MESSAGE) ? jsonNode.get(MESSAGE).asText() : "No message provided";
 
             if(message.equals("Invalid phone number")){
                 throw new InvalidOTPException("Invalid phone number");
@@ -102,14 +105,20 @@ public class OTPService {
                 throw new InvalidOTPException("Code has expired");
             }
 
+            if(message.equals("Invalid code")){
+                throw new InvalidOTPException("Invalid code");
+            }
+
             if (!response.isSuccessful()) {
                 throw new InvalidOTPException("Invalid OTP. Please try again.");
             }
 
             Optional<User> user = userRepository.findByPhone(otpRequest.number());
             user.ifPresent(this::enableUserIfDisabled);
+            String jwtToken = jwtUtil.generateToken(user.orElseThrow(() -> new UserNotFoundException("User not found")));
 
             return RegisterResponse.builder()
+                    .token(jwtToken)
                     .message("OTP verified successfully and account enabled. You can now log in.")
                     .build();
         } catch (IOException e) {
@@ -166,7 +175,7 @@ public class OTPService {
         requestBody.put("expiry", "5");
         requestBody.put("length", "6");
         requestBody.put("medium", "sms");
-        requestBody.put("message", "Your verification code for SALON SPOT is %otp_code%. Please enter this code within 5 minutes to complete your authentication.");
+        requestBody.put(MESSAGE, "Your verification code for SALON SPOT is %otp_code%. Please enter this code within 5 minutes to complete your authentication.");
         requestBody.put("number", user.getPhone());
         requestBody.put("sender_id", "SALON SPOT");
         requestBody.put("type", "numeric");
@@ -185,8 +194,8 @@ public class OTPService {
      */
     private RequestBody buildJsonRequestBody(Map<String, String> requestBody) {
         return RequestBody.create(
-                MediaType.parse("application/json; charset=utf-8"),
-                gson.toJson(requestBody)
+                gson.toJson(requestBody),
+                MediaType.parse("application/json; charset=utf-8")
         );
     }
 
