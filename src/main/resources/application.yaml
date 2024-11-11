@@ -57,3 +57,6 @@ logging:
 
 server:
   port: 9090
+
+springdoc:
+  show-actuator: true
