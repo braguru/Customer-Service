@@ -72,9 +72,11 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public RegisterResponse registerUser(RegisterRequest registerRequest) {
         log.info("Registering user with email: {}, phone: {}, username: {}",
-                registerRequest.email(), registerRequest.phone(), registerRequest.username());
+                registerRequest.email(), registerRequest.phone(), registerRequest.firstname());
 
-        if (userRepository.findByUsername(registerRequest.username()).isPresent()) {
+        String username = registerRequest.firstname() + " " + registerRequest.lastname();
+
+        if (userRepository.findByUsername(username).isPresent()) {
             log.error("User with provided email, username, or phone already exists.");
             throw new UserAlreadyExistsException("User with provided email, username, or phone already exists.");
         }
@@ -138,8 +140,10 @@ public class AuthServiceImpl implements AuthService {
             throw new NoEmailORPhoneNumberException("Phone number should not be provided for email-based registration.");
         }
 
+        String username = registerRequest.firstname() + " " + registerRequest.lastname();
+
         User user = User.builder()
-                .username(registerRequest.username())
+                .username(username)
                 .email(registerRequest.email())
                 .date(LocalDate.now())
                 .role(Role.valueOf(registerRequest.role()))
@@ -191,8 +195,10 @@ public class AuthServiceImpl implements AuthService {
             throw new NoEmailORPhoneNumberException("Password should not be provided for phone number-based registration.");
         }
 
+        String username = registerRequest.firstname() + " " + registerRequest.lastname();
+
         User user = User.builder()
-                .username(registerRequest.username())
+                .username(username)
                 .date(LocalDate.now())
                 .role(Role.valueOf(registerRequest.role()))
                 .phone(registerRequest.phone())
@@ -438,7 +444,7 @@ public class AuthServiceImpl implements AuthService {
      * @throws UserNotFoundException if no user is found with the provided phone number
      * @throws OtpNotSentException if there is an error while sending the OTP
      */
-    public String resendOTP(OTPRequest otpRequest){
+    public LoginResponse resendOTP(OTPRequest otpRequest){
         try {
             User user = userRepository.findByPhone(otpRequest.number()).orElseThrow(
                     () -> new UserNotFoundException("User not found with phone number: " + otpRequest.number())
@@ -449,7 +455,9 @@ public class AuthServiceImpl implements AuthService {
             log.error("Error sending OTP: {}", ex.getMessage());
             throw new OtpNotSentException("Failed to send OTP. Please try again later.");
         }
-        return "OTP sent successfully. Please check your phone for the OTP.";
+        return LoginResponse.builder()
+                .message("OTP sent successfully. Please check your phone for the OTP.")
+                .build();
     }
 
 
