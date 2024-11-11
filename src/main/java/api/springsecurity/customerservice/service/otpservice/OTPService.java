@@ -105,6 +105,10 @@ public class OTPService {
                 throw new InvalidOTPException("Code has expired");
             }
 
+            if(message.equals("Invalid code")){
+                throw new InvalidOTPException("Invalid code");
+            }
+
             if (!response.isSuccessful()) {
                 throw new InvalidOTPException("Invalid OTP. Please try again.");
             }
