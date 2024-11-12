@@ -1,9 +1,6 @@
 name: Build and Push Docker Image to ECR
 
 on:
-  pull_request:
-    branches:
-      - main
   push:
     branches:
       - main
@@ -36,12 +33,6 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Delete existing image from ECR (only on main)
-        if: github.ref == 'refs/heads/main'
-        run: |
-          APP_IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}"
-          aws ecr batch-delete-image --repository-name $ECR_REPOSITORY --image-ids imageTag=$IMAGE_TAG || echo "No existing application image found to delete"
-
       - name: Build Docker image
         id: build-image
         run: |
@@ -50,9 +41,10 @@ jobs:
 
       - name: Tag Docker image
         run: |
-          APP_IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}"
+          SHORT_SHA=${GITHUB_SHA::7}
+          APP_IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${SHORT_SHA}"
           docker tag $ECR_REPOSITORY:latest $APP_IMAGE_URI
-          echo "image tagged"
+          echo "Image tagged with SHA: ${SHORT_SHA}"
 
       - name: Push Docker image to ECR (only on main)
         if: github.ref == 'refs/heads/main'

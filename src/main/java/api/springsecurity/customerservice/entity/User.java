@@ -43,6 +43,8 @@ public class User implements UserDetails {
     @Builder.Default
     private boolean enabled = false;
     private boolean locked = false;
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private transient UserProfile userProfile;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
