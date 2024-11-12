@@ -5,22 +5,15 @@ import api.springsecurity.customerservice.dto.RegisterResponse;
 import api.springsecurity.customerservice.entity.User;
 import api.springsecurity.customerservice.entity.UserProfile;
 import api.springsecurity.customerservice.entity.enums.Role;
-import api.springsecurity.customerservice.exceptions.CustomExceptions;
 import api.springsecurity.customerservice.payload.LoginRequest;
 import api.springsecurity.customerservice.payload.OTPRequest;
 import api.springsecurity.customerservice.payload.RegisterRequest;
 import api.springsecurity.customerservice.repositories.UserProfileRepository;
 import api.springsecurity.customerservice.repositories.UserRepository;
-import api.springsecurity.customerservice.repositories.VerificationTokenRepository;
-import api.springsecurity.customerservice.service.emailservice.EmailService;
 import api.springsecurity.customerservice.service.otpservice.OTPService;
-import api.springsecurity.customerservice.utils.PasswordUtil;
-import api.springsecurity.customerservice.utils.jwtutil.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -33,13 +26,8 @@ import static api.springsecurity.customerservice.exceptions.CustomExceptions.*;
 public class AuthServiceImplV1 implements AuthService {
 
     private final UserRepository userRepository;
-    private final VerificationTokenRepository verificationTokenRepository;
-    private final EmailService emailService;
-    private final AuthenticationManager authenticationManager;
-    private final JwtUtil jwtService;
     private final OTPService otpService;
     private final UserProfileRepository userProfileRepository;
-    private final PasswordEncoder passwordEncoder;
 
     @Override
     public RegisterResponse registerUser(RegisterRequest registerRequest) {
@@ -74,24 +62,21 @@ public class AuthServiceImplV1 implements AuthService {
         return handleRegistration(registerRequest);
     }
 
-    private RegisterResponse handleRegistration(RegisterRequest registerRequest) {
+    public RegisterResponse handleRegistration(RegisterRequest registerRequest) {
         try {
             User user = User.builder()
                     .firstname(registerRequest.firstname())
                     .lastname(registerRequest.lastname())
-//                    .username(registerRequest.firstname() + " " + registerRequest.lastname())
                     .email(registerRequest.email())
                     .date(LocalDate.now())
-                    .role(Role.valueOf(registerRequest.role()))
+                    .role(Role.USER)
                     .phone(registerRequest.phone())
                     .enabled(false)
                     .build();
             userRepository.save(user);
             userProfileRepository.save(UserProfile.builder()
                     .user(user)
-                    .profilePicture(null)
                     .build());
-
             return getRegisterResponse(user, otpService, log);
         } catch (IllegalArgumentException e) {
             throw new OtpNotSentException("Failed to send OTP. Please try again.");
@@ -107,6 +92,7 @@ public class AuthServiceImplV1 implements AuthService {
                     .id(String.valueOf(user.getId()))
                     .firstname(user.getFirstname())
                     .lastname(user.getLastname())
+                    .username(user.getUsername())
                     .email(user.getEmail())
                     .phone(user.getPhone())
                     .message(response)
