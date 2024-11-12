@@ -17,6 +17,7 @@ jobs:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
       ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
       IMAGE_TAG: latest
+      SHORT_SHA: ${GITHUB_SHA::7}
 
     steps:
       - name: Checkout repository
@@ -41,7 +42,7 @@ jobs:
 
       - name: Tag Docker image
         run: |
-          SHORT_SHA=${GITHUB_SHA::7}
+          # SHORT_SHA=${GITHUB_SHA::7}
           APP_IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${SHORT_SHA}"
           docker tag $ECR_REPOSITORY:latest $APP_IMAGE_URI
           echo "Image tagged with SHA: ${SHORT_SHA}"
