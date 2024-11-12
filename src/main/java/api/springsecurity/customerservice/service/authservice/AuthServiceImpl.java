@@ -146,7 +146,7 @@ public class AuthServiceImpl implements AuthService {
                 .username(username)
                 .email(registerRequest.email())
                 .date(LocalDate.now())
-                .role(Role.valueOf(registerRequest.role()))
+                .role(Role.USER)
                 .phone(null) // No phone number
                 .enabled(false)
                 .password(passwordEncoder.encode(registerRequest.password()))
@@ -200,7 +200,7 @@ public class AuthServiceImpl implements AuthService {
         User user = User.builder()
                 .username(username)
                 .date(LocalDate.now())
-                .role(Role.valueOf(registerRequest.role()))
+                .role(Role.USER)
                 .phone(registerRequest.phone())
                 .build();
         userRepository.save(user);
