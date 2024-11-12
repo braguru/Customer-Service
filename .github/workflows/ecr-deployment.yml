@@ -18,6 +18,7 @@ jobs:
       ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
       IMAGE_TAG: latest
       SHORT_SHA: ${GITHUB_SHA::7}
+      echo "SHA: ${SHORT_SHA}"
 
     steps:
       - name: Checkout repository
