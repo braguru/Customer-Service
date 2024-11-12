@@ -49,9 +49,9 @@ jobs:
       - name: Push Docker image to ECR (only on main)
         if: github.ref == 'refs/heads/main'
         run: |
-          APP_IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}"
+          APP_IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${SHORT_SHA}"
           docker push $APP_IMAGE_URI
-          echo "image pushed"
+          echo "image pushed with SHA: ${SHORT_SHA}"
 
       - name: Deploy to EC2
         uses: appleboy/ssh-action@master
