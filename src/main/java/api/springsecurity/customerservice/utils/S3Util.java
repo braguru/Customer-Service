@@ -23,6 +23,8 @@ import software.amazon.awssdk.core.sync.ResponseTransformer;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
@@ -32,6 +34,7 @@ import javax.imageio.stream.ImageOutputStream;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.file.Files;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -53,6 +56,7 @@ public class S3Util {
 
     private final S3Client s3;
     private final S3AsyncClient s3AsyncClient;
+    private final S3Presigner s3Presigner;
 
     private static final String ERROR_DELETING_FILE = "Error deleting file from S3: ";
     private static final String S3_OBJECT_URL = "https://%s.s3.%s.amazonaws.com/%s";
@@ -394,11 +398,11 @@ public class S3Util {
     }
 
     public List<S3ObjectResponse> listObjects() {
-        ListObjectsRequest listObjectsRequest = ListObjectsRequest.builder()
+        ListObjectsV2Request listObjectsRequest = ListObjectsV2Request.builder()
                 .bucket(bucketName)
                 .build();
 
-        ListObjectsResponse listObjectsResponse = s3.listObjects(listObjectsRequest);
+        ListObjectsV2Response listObjectsResponse = s3.listObjectsV2(listObjectsRequest);
 
         return listObjectsResponse.contents().stream()
                 .map(s3Object -> S3ObjectResponse.builder()
@@ -412,4 +416,29 @@ public class S3Util {
 
     }
 
+    public byte[] getObject() throws IOException {
+        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                .bucket(bucketName)
+                .key("service_images/15mb.jpg")
+                .build();
+
+        ResponseInputStream<GetObjectResponse> responseInputStream = s3.getObject(getObjectRequest, ResponseTransformer.toInputStream());
+
+        return responseInputStream.readAllBytes();
+    }
+
+
+    public String generatePresignedUrl(String key) {
+        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .build();
+
+        GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+                .getObjectRequest(getObjectRequest)
+                .signatureDuration(Duration.ofMinutes(10)) // Set desired expiration time
+                .build();
+
+        return s3Presigner.presignGetObject(presignRequest).url().toString();
+    }
 }
