@@ -91,7 +91,7 @@ pipeline {
               }
           }
       }
-
+  }
   post {
         always {
               echo "Pipeline execution completed."
@@ -116,6 +116,5 @@ pipeline {
       failure {
           echo 'Pipeline execution failed.'
       }
-  }
   }
 }
