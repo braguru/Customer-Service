@@ -81,9 +81,9 @@ pipeline {
 
       // Stage 5: Backup Jenkins Server to S3
       stage('Backup Jenkins to S3') {
-           echo "Backup Jenkins home directory to S3..."
           steps {
               script {
+                  echo "Backup Jenkins home directory to S3..."
                   // Backup Jenkins home directory to S3
                   sh '''
                   aws s3 cp $JENKINS_HOME s3://$S3_BUCKET/jenkins-backups/ --recursive
@@ -92,30 +92,30 @@ pipeline {
           }
       }
 
-      post {
-            always {
-                  echo "Pipeline execution completed."
-                  script {
-                        echo "Starting cleanup tasks..."
-                        try {
-                          echo "Removing Docker images for changed services: ${changedServices.join(', ')}"
-                          changedServices.each { service ->
-                          sh "docker rmi ${imageRegistry}/${imageName}:${service}-${gitSha}"
-                          echo "Removed image: ${imageRegistry}/${imageName}:${service}-${gitSha}"
-                          }
-                          sh 'docker system prune -f'
-                          cleanWs()
-                        } catch (Exception e) {
-                          echo "Cleanup failed: ${e.getMessage()}"
-                        }
-                  }
-            }
-          success {
-              echo 'Pipeline executed successfully.'
-          }
-          failure {
-              echo 'Pipeline execution failed.'
-          }
+  post {
+        always {
+              echo "Pipeline execution completed."
+              script {
+                    echo "Starting cleanup tasks..."
+                    try {
+                      echo "Removing Docker images for changed services: ${changedServices.join(', ')}"
+                      changedServices.each { service ->
+                      sh "docker rmi ${imageRegistry}/${imageName}:${service}-${gitSha}"
+                      echo "Removed image: ${imageRegistry}/${imageName}:${service}-${gitSha}"
+                      }
+                      sh 'docker system prune -f'
+                      cleanWs()
+                    } catch (Exception e) {
+                      echo "Cleanup failed: ${e.getMessage()}"
+                    }
+              }
+        }
+      success {
+          echo 'Pipeline executed successfully.'
       }
+      failure {
+          echo 'Pipeline execution failed.'
+      }
+  }
   }
 }
