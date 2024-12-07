@@ -117,7 +117,7 @@ pipeline {
                       echo "Removing Docker image"
                       sh "docker rmi ${IMAGE_NAME}"
                       echo "Removed image: ${imageRegistry}/${imageName}:${service}-${gitSha}"
-                      }
+                      echo "Pruning Docker system"
                       sh 'docker system prune -f'
                       cleanWs()
                     } catch (Exception e) {
