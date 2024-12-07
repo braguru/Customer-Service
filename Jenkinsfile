@@ -19,7 +19,7 @@ pipeline {
       environment {
           // Define variables
           IMAGE_NAME = 'customerservice-app'
-          EC2_IP = '3.8.137.164'
+          EC2_IP = '13.40.12.135'
           EC2_USER = 'ubuntu'
           S3_BUCKET = 's3://cs-pipeline'
           JENKINS_HOME = '/var/lib/jenkins'
