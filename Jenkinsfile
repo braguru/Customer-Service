@@ -18,7 +18,7 @@ pipeline {
 
       environment {
           // Define variables
-          IMAGE_NAME = 'myapp:latest'
+          IMAGE_NAME = 'customerservice-app'
           EC2_IP = '3.8.137.164'
           EC2_USER = 'ubuntu'
           S3_BUCKET = 's3://cs-pipeline'
@@ -57,15 +57,31 @@ pipeline {
          }
      }
 
+     stage("Login to docker"){
+        steps{
+            script{
+                withCredentials([usernamePassword(credentialsId: 'DockerHub-Access', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                    sh "docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD}"
+                }
+            }
+        }
+     }
+
+     stage('Push Docker Image to DockerHub') {
+         steps {
+             script {
+                 // Push Docker image to DockerHub
+                 echo "Pushing Docker image to DockerHub..."
+                 sh 'docker tag ${IMAGE_NAME} braguru/${IMAGE_NAME}'
+                 sh 'docker push braguru/${IMAGE_NAME}'
+                 echo "Docker image pushed to DockerHub."
+             }
+         }
+     }
+
       stage('Deploy to EC2') {
           steps {
               script {
-                  // Push Docker image to DockerHub (optional)
-                  echo "Pushing Docker image to DockerHub..."
-                  sh 'docker tag $IMAGE_NAME braguru/$IMAGE_NAME'
-                  sh 'docker push braguru/$IMAGE_NAME'
-                  echo "Docker image pushed to DockerHub."
-
                   // Deploy the Docker container on EC2
                   echo "Deploying Docker container on EC2..."
                   sh '''
@@ -98,9 +114,8 @@ pipeline {
               script {
                     echo "Starting cleanup tasks..."
                     try {
-                      echo "Removing Docker images for changed services: ${changedServices.join(', ')}"
-                      changedServices.each { service ->
-                      sh "docker rmi ${imageRegistry}/${imageName}:${service}-${gitSha}"
+                      echo "Removing Docker image"
+                      sh "docker rmi ${IMAGE_NAME}"
                       echo "Removed image: ${imageRegistry}/${imageName}:${service}-${gitSha}"
                       }
                       sh 'docker system prune -f'
