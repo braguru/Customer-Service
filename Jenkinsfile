@@ -105,9 +105,16 @@ pipeline {
                         echo "Pulling Docker image: braguru/\$IMAGE_NAME"
                         docker pull braguru/\$IMAGE_NAME
 
+                        if [ -f /home/ubuntu/docker-compose.yml ]; then
+                            echo "Removing old docker-compose.yml..."
+                            rm /home/ubuntu/docker-compose.yml
+                        fi
                         # Move deployment files to the deployment directory
                         mv /tmp/app/docker-compose.yml /home/ubuntu/
+                        cat /home/ubuntu/docker-compose.yml
 
+                        echo "Restarting services using the new docker-compose.yml..."
+                        docker compose down || echo "No running services to stop."
                         # Start the app service using Docker Compose
                         echo "Starting the app service using Docker Compose..."
                         docker compose up -d
