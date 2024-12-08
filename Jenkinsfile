@@ -37,6 +37,7 @@ pipeline {
                 script {
                     echo "current workdir: "
                     sh 'pwd'
+                    sh 'ls -la'
                     echo "Running Maven test command..."
                     runMavenCommand('test')
                 }
