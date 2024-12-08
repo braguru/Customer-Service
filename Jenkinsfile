@@ -78,47 +78,28 @@ pipeline {
                     withCredentials([sshUserPrivateKey(credentialsId: 'ec2-ssh-key', keyFileVariable: 'SSH_KEY_PATH', usernameVariable: 'EC2_USER')]) {
                         echo "Deploying Docker container on EC2..."
 
-                        // Create a directory and organize files
+                        // Transfer updated docker-compose.yml to the EC2 instance
                         sh """
-                        echo "Creating the 'app/' directory and copying required files..."
-                        mkdir -p app/project
-                        cp ./docker-compose.yml app/project/
+                        echo "Transferring updated docker-compose.yml to EC2..."
+                        scp -i $SSH_KEY_PATH -o StrictHostKeyChecking=no docker-compose.yml $EC2_USER@$EC2_IP:/home/ubuntu/project/docker-compose.yml
                         """
 
-                        // Transfer the directory to the EC2 instance
-                        echo "Transferring deployment files to EC2..."
-                        sh """
-                        scp -i $SSH_KEY_PATH -o StrictHostKeyChecking=no -r app/ $EC2_USER@$EC2_IP:/tmp/
-                        """
-
-                        // Deploy using the transferred files
-                        echo "Deploying Docker container on EC2..."
+                        // Deploy on EC2
+                        echo "Executing deployment on EC2..."
                         sh """
                         ssh -i $SSH_KEY_PATH -o StrictHostKeyChecking=no $EC2_USER@$EC2_IP << 'EOF'
                         IMAGE_NAME=${IMAGE_NAME}
 
-                        # Stop and remove the existing container if it exists
-                        echo "Stopping and removing existing container if it exists..."
-                        docker ps -q --filter "name=cs_backend_app" | grep -q . && docker stop cs_backend_app && docker rm cs_backend_app || echo "No existing container to remove."
-
-                        #Pull the latest image
-                        echo "Pulling Docker image: braguru/\$IMAGE_NAME"
+                        # Pull the latest image
+                        echo "Pulling Docker image: braguru/\$IMAGE_NAME..."
                         docker pull braguru/\$IMAGE_NAME
 
-                        cd /app/project
-                        if [ -f /home/ubuntu/docker-compose.yml ]; then
-                            echo "Removing old docker-compose.yml..."
-                            rm /home/ubuntu/project/docker-compose.yml
-                        fi
-                        # Move deployment files to the deployment directory
-                        mv /tmp/app/project/docker-compose.yml /home/ubuntu/project
-                        cat /home/ubuntu/project/docker-compose.yml
-
+                        # Navigate to the deployment directory
                         cd /home/ubuntu/project
-                        echo "Restarting services using the new docker-compose.yml..."
+
+                        # Restart the app service using Docker Compose
+                        echo "Restarting services with updated docker-compose.yml..."
                         docker compose down || echo "No running services to stop."
-                        # Start the app service using Docker Compose
-                        echo "Starting the app service using Docker Compose..."
                         docker compose up -d
                         EOF
                         """
