@@ -81,7 +81,7 @@ pipeline {
                         // Create a directory and organize files
                         sh """
                         echo "Creating the 'app/' directory and copying required files..."
-                        mkdir -p app/
+                        mkdir -p app/project
                         cp ./docker-compose.yml app/
                         """
 
@@ -105,14 +105,16 @@ pipeline {
                         echo "Pulling Docker image: braguru/\$IMAGE_NAME"
                         docker pull braguru/\$IMAGE_NAME
 
+                        cd /app/project
                         if [ -f /home/ubuntu/docker-compose.yml ]; then
                             echo "Removing old docker-compose.yml..."
                             rm /home/ubuntu/docker-compose.yml
                         fi
                         # Move deployment files to the deployment directory
-                        mv /tmp/app/docker-compose.yml /home/ubuntu/
-                        cat /home/ubuntu/docker-compose.yml
+                        mv /tmp/app/project/docker-compose.yml /home/ubuntu/project
+                        cat /home/ubuntu/project/docker-compose.yml
 
+                        cd /home/ubuntu/project
                         echo "Restarting services using the new docker-compose.yml..."
                         docker compose down || echo "No running services to stop."
                         # Start the app service using Docker Compose
