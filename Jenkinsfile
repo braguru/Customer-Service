@@ -73,7 +73,7 @@ pipeline {
         stage('Deploy to EC2') {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: 'ec2-ssh-key', usernameVariable: 'USERNAME', passwordVariable: 'TOKEN')]) {
+                    withCredentials([sshUserPrivateKey(credentialsId: 'ec2-ssh-key', keyFileVariable: 'SSH_KEY_PATH', usernameVariable: 'EC2_USER')]) {
                         echo "Deploying Docker container on EC2..."
                         sh """
                         ssh -i $SSH_KEY_PATH -o StrictHostKeyChecking=no $EC2_USER@$EC2_IP << 'EOF'
