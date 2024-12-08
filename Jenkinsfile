@@ -110,7 +110,7 @@ pipeline {
 
                         # Start the app service using Docker Compose
                         echo "Starting the app service using Docker Compose..."
-                        docker compose -f up docker-compose.yml -d
+                        docker compose up -d
                         EOF
                         """
                     }
