@@ -81,6 +81,10 @@ pipeline {
                         // Transfer updated docker-compose.yml to the EC2 instance
                         sh """
                         echo "Transferring updated docker-compose.yml to EC2..."
+                        echo "Displaying compose file"
+                        echo "current workdir: "
+                        pwd
+                        cat docker-compose.yml
                         scp -i $SSH_KEY_PATH -o StrictHostKeyChecking=no docker-compose.yml $EC2_USER@$EC2_IP:/home/ubuntu/project/docker-compose.yml
                         """
 
