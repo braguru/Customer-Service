@@ -82,7 +82,7 @@ pipeline {
                         sh """
                         echo "Creating the 'app/' directory and copying required files..."
                         mkdir -p app/project
-                        cp ./docker-compose.yml app/
+                        cp ./docker-compose.yml app/project/
                         """
 
                         // Transfer the directory to the EC2 instance
@@ -108,7 +108,7 @@ pipeline {
                         cd /app/project
                         if [ -f /home/ubuntu/docker-compose.yml ]; then
                             echo "Removing old docker-compose.yml..."
-                            rm /home/ubuntu/docker-compose.yml
+                            rm /home/ubuntu/project/docker-compose.yml
                         fi
                         # Move deployment files to the deployment directory
                         mv /tmp/app/project/docker-compose.yml /home/ubuntu/project
