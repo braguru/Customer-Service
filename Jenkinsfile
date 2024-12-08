@@ -78,7 +78,7 @@ pipeline {
                         sh '''
                         ssh -i $SSH_KEY_PATH -o StrictHostKeyChecking=no $EC2_USER@$EC2_IP << EOF
                             docker pull braguru/$IMAGE_NAME
-                            docker run -d --name myapp -p 8080:8080 braguru/$IMAGE_NAME
+                            docker run -d --name myapp -p 9090:9090 braguru/$IMAGE_NAME
                         EOF
                         '''
                     }
