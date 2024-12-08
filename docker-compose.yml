@@ -16,8 +16,8 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile
-    image: cs_backend_app:latest
+#      dockerfile: Dockerfile
+    image: braguru/customerservice-app:latest
     container_name: cs_backend_app
     environment:
       DATABASE_URL: ${DATABASE_URL}

@@ -35,6 +35,8 @@ pipeline {
         stage('Test Code') {
             steps {
                 script {
+                    echo "current workdir: "
+                    sh 'pwd'
                     echo "Running Maven test command..."
                     runMavenCommand('test')
                 }
@@ -75,13 +77,40 @@ pipeline {
                 script {
                     withCredentials([sshUserPrivateKey(credentialsId: 'ec2-ssh-key', keyFileVariable: 'SSH_KEY_PATH', usernameVariable: 'EC2_USER')]) {
                         echo "Deploying Docker container on EC2..."
+
+                        // Create a directory and organize files
+                        sh """
+                        echo "Creating the 'app/' directory and copying required files..."
+                        mkdir -p app/
+                        cp ./docker-compose.yml app/
+                        """
+
+                        // Transfer the directory to the EC2 instance
+                        echo "Transferring deployment files to EC2..."
+                        sh """
+                        scp -i $SSH_KEY_PATH -o StrictHostKeyChecking=no -r app/ $EC2_USER@$EC2_IP:/tmp/
+                        """
+
+                        // Deploy using the transferred files
+                        echo "Deploying Docker container on EC2..."
                         sh """
                         ssh -i $SSH_KEY_PATH -o StrictHostKeyChecking=no $EC2_USER@$EC2_IP << 'EOF'
                         IMAGE_NAME=${IMAGE_NAME}
+
+                        # Stop and remove the existing container if it exists
+                        echo "Stopping and removing existing container if it exists..."
+                        docker ps -q --filter "name=cs_backend_app" | grep -q . && docker stop cs_backend_app && docker rm cs_backend_app || echo "No existing container to remove."
+
+                        #Pull the latest image
                         echo "Pulling Docker image: braguru/\$IMAGE_NAME"
                         docker pull braguru/\$IMAGE_NAME
-                        echo "Running Docker container..."
-                        docker run -d --name customerservice -p 9090:9090 braguru/\$IMAGE_NAME:latest
+
+                        # Move deployment files to the deployment directory
+                        mv /tmp/app/docker-compose.yml /home/ubuntu/
+
+                        # Start the app service using Docker Compose
+                        echo "Starting the app service using Docker Compose..."
+                        docker compose -f up docker-compose.yml -d
                         EOF
                         """
                     }
