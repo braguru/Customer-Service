@@ -115,7 +115,7 @@ pipeline {
             steps {
                 script {
                     def backupDir = '/home/jenkins/backups'
-                    def jenkinsHome = '/home/jenkins'
+                    def jenkinsHome = '/var/lib/jenkins'
                     def timestamp = new Date().format("yyyyMMddHHmmss")
                     def backupFile = "jenkins_backup_${timestamp}.tar.gz"
                     def tempBackupDir = '/home/jenkins/temp_backup'
