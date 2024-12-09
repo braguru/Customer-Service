@@ -104,8 +104,7 @@ pipeline {
 
                         # Restart the app service using Docker Compose
                         echo "Restarting services with updated docker-compose.yml..."
-                        docker compose down || echo "No running services to stop."
-                        docker compose up -d
+                        docker compose up app -d
                         EOF
                         """
                     }
