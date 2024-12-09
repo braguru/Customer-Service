@@ -22,6 +22,7 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 import java.util.List;
 import java.util.Optional;
@@ -143,6 +144,14 @@ public class AppConfig {
     public S3AsyncClient s3AsyncClient() {
         return S3AsyncClient.builder()
                 .region(Region.of(region))
+                .credentialsProvider(DefaultCredentialsProvider.create())
+                .build();
+    }
+
+    @Bean
+    public S3Presigner s3Presigner() {
+        return S3Presigner.builder()
+                .region(Region.of(region)) // Replace with your desired AWS region
                 .credentialsProvider(DefaultCredentialsProvider.create())
                 .build();
     }
