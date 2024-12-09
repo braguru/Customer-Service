@@ -114,10 +114,20 @@ pipeline {
         stage('Backup Jenkins to S3') {
             steps {
                 script {
-                    echo "Backing up Jenkins home directory to S3..."
-                    sh '''
-                    aws s3 cp $JENKINS_HOME ${S3_BUCKET}/jenkins-backups/ --recursive
-                    '''
+                def backupDir = '/home/jenkins/backups'
+                def jenkinsHome = '/home/jenkins'
+                def timestamp = new Date().format("yyyyMMddHHmmss")
+                def backupFile = "jenkins_backup_${timestamp}.tar.gz"
+                def tempBackupDir = '/home/jenkins/temp_backup'
+
+                sh "cp -r ${jenkinsHome}/workspace/* ${tempBackupDir}/"
+
+                sh "tar --ignore-failed-read  -czvf ${backupDir}/${backupFile} -C ${tempBackupDir} ."
+                echo "Backing up Jenkins home directory to S3..."
+
+                withAWS(credentials: 'aws-access', region: 'eu-west-2'){
+                    echo "Uploading Jenkins home directory to S3..."
+                    s3Upload(bucket: S3_BUCKET, file: "${backupDir}/${backupFile}")
                 }
             }
         }
