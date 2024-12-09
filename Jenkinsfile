@@ -100,7 +100,6 @@ pipeline {
                         docker pull braguru/\$IMAGE_NAME
 
                         # Navigate to the deployment directory
-                        cd /home/ubuntu/project
 
                         # Restart the app service using Docker Compose
                         echo "Restarting services with updated docker-compose.yml..."
