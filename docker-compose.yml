@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
       POSTGRES_DB: ${DATABASE_NAME}
     env_file:
-      - ./home/ubuntu/project/.env
+      - .env
     ports:
       - "5432:5432"
     volumes:
@@ -21,7 +21,7 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL}
     env_file:
-        - ./home/ubuntu/project/.env
+        - .env
     ports:
       - "9090:9090"
     depends_on:

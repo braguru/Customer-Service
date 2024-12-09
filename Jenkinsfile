@@ -103,6 +103,7 @@ pipeline {
 
                         # Restart the app service using Docker Compose
                         echo "Restarting services with updated docker-compose.yml..."
+                        cd /home/ubuntu/project
                         docker compose up app -d
                         EOF
                         """
