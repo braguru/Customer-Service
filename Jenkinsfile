@@ -44,6 +44,13 @@ pipeline {
             }
         }
 
+        stage('Sonarqube Analysis'){
+            def mvn = tool 'maven'
+            withSonarQubeEnv('sonarqube') {
+                sh "${mvn}/bin/mvn clean verify sonar:sonar -Dsonar.projectKey=braguru_CS-Demo_7e79b027-c708-43e9-bbb3-d0d020cd1a29 -Dsonar.projectName='CS-Demo'"
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 script {
