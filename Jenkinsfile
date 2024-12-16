@@ -131,9 +131,9 @@ pipeline {
                     def backupFile = "jenkins_backup_${timestamp}.tar.gz"
                     def tempBackupDir = '/home/jenkins/temp_backup'
 
-                    sh "cp -r ${jenkinsHome}/workspace/* ${tempBackupDir}/"
+                    sh "sudo cp -r ${jenkinsHome}/workspace/* ${tempBackupDir}/"
 
-                    sh "tar --ignore-failed-read  -czvf ${backupDir}/${backupFile} -C ${tempBackupDir} ."
+                    sh "sudo tar --ignore-failed-read  -czvf ${backupDir}/${backupFile} -C ${tempBackupDir} ."
                     echo "Backing up Jenkins home directory to S3..."
 
                     withAWS(credentials: 'aws-access', region: 'eu-west-2'){
