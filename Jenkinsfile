@@ -18,7 +18,7 @@ pipeline {
 
     environment {
         IMAGE_NAME = 'customerservice-app'
-        EC2_IP = '13.40.12.135'
+        EC2_IP = '35.179.159.222'
         EC2_USER = 'ubuntu'
         S3_BUCKET = 'cs-pipeline'
         JENKINS_HOME = '/var/lib/jenkins'
